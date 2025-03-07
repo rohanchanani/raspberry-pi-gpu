@@ -1,4 +1,5 @@
-objs/gpu.o: gpu.c /home/rohan-chanani/Downloads/tmp//libpi/include/rpi.h \
+objs/mailbox.o: mailbox.c \
+ /home/rohan-chanani/Downloads/tmp//libpi/include/rpi.h \
  /home/rohan-chanani/Downloads/tmp//libpi/libc/demand.h \
  /home/rohan-chanani/Downloads/tmp//libpi/include/gpio.h \
  /home/rohan-chanani/Downloads/tmp//libpi/include/rpi-constants.h \
