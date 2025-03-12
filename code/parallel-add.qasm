@@ -36,19 +36,23 @@ nop
 
 :loop
     mov r1, vpm
-    mov r2, vpm   
+    mov -, vw_wait
+
+    mov r2, vpm
+    mov -, vw_wait   
 
     # Sum = A[lane] + B[lane]
     add r1, r1, r2
 
-    mov vpm, r4
+    mov vpm, r1
+    mov -, vw_wait
 
     sub.setf ra0, ra0, 1
     brr.anynz -, :loop
 
-mov vw_setup, vdw_setup_0(4, 16, vdr_h32(1,8, 0))
-mov vw_addr, ra3
-mov -, vw_wait
+#mov vw_setup, vdw_setup_0(4, 16, vdr_h32(1,8, 0))
+#mov vw_addr, ra3
+#mov -, vw_wait
 
 
 # End of kernel
