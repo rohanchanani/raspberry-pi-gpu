@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* 
+/*
  * Bare-metal Mailbox Interface for Raspberry Pi
  *
  * This header defines the functions for interacting with the GPU's mailbox
@@ -24,7 +24,7 @@
  *   - execute_qpu():   Execute QPU code.
  *
  * All property messages are sent on mailbox channel 8.
- * 
+ *
  * Note: Ensure that the mailbox message buffers are 16-byte aligned.
  */
 
@@ -59,7 +59,7 @@ uint32_t mem_unlock(uint32_t handle);
  *
  * qpu_enable: Enable (or disable) the QPU. Pass 1 to enable, 0 to disable.
  *
- * execute_qpu: Launches QPU code. 
+ * execute_qpu: Launches QPU code.
  *              Parameters:
  *                num_qpus - number of QPUs to execute
  *                control  - control flags for execution
@@ -70,7 +70,6 @@ uint32_t mem_unlock(uint32_t handle);
 uint32_t qpu_enable(uint32_t enable);
 uint32_t execute_qpu(uint32_t num_qpus, uint32_t control, uint32_t noflush, uint32_t timeout);
 
-void clean_and_invalidate_cache();
+unsigned gpu_fft_base_exec_direct(uint32_t code, uint32_t unifs, int num_qpus);
 
 #endif /* BARE_MBOX_H */
-

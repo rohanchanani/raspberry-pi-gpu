@@ -1,5 +1,5 @@
 #include "rpi.h"
-#include "gpu.h"
+#include "mailbox.h"
 
 // Simple QPU kernel that adds two numbers
 // This is a very basic kernel that adds two uniform values and returns the result
@@ -26,32 +26,7 @@ static const uint32_t test_uniforms[] = {
 void notmain(void) {
     printk("Starting simple GPU test\n");
 
-
-    
-    // Initialize the GPU
-    gpu_init();
-    printk("GPU initialized\n");
-    
-    #define V3D_BASE (0x20C00000)
-    #define QPU_CONTROL_STATUS (V3D_BASE + 0x43c)    // QPU Control Status Register, V3D_SRQCS
-    #define QPU_PROGRAM_COUNTER (V3D_BASE + 0x430)    // QPU Program Counter Register, V3D_SRQPC
-
-    // // Set the control status register to 1 to start the QPU
-    // gpu_load_kernel(simple_add_kernel, sizeof(simple_add_kernel));
-    // gpu_load_kernel(simple_add_kernel, sizeof(simple_add_kernel));
-    // gpu_load_kernel(simple_add_kernel, sizeof(simple_add_kernel));
-    // gpu_load_kernel(simple_add_kernel, sizeof(simple_add_kernel));
-
-    // PUT32(QPU_CONTROL_STATUS, 0);
-
-    PUT32(QPU_PROGRAM_COUNTER, 0xEECCEECC);
-    int cs_val = GET32(QPU_CONTROL_STATUS);
-    int pc_val = GET32(QPU_PROGRAM_COUNTER);
-    printk("QPU control status: %x\n", cs_val);
-    printk("QPU program counter: %x\n", pc_val);
-
-    uint32_t result = gpu_get_result();
-    printk("GPU result: %x\n", result);
-
-    printk("Simple GPU test completed\n");
-} 
+    unsigned gpu_fft_base_exec_direct(
+        struct GPU_FFT_BASE * base,
+        int num_qpus)
+}
