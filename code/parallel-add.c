@@ -91,12 +91,32 @@ void notmain(void)
 	gpu->unif[2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B);
 	gpu->unif[3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C);
 
+	printk("Running code on GPU...\n");
 	printk("Memory before running code: %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
-	trace("Executing process... result: %d\n", gpu_execute(gpu));
+
+	int start_time = timer_get_usec();
+	int iret = gpu_execute(gpu);
+	int end_time = timer_get_usec();
+
+	int gpu_time = end_time - start_time;
+
 	printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
-	
+
+	// for (i = 0; i < 64; i++) {
+	// 	trace("%d + %d = %d\n", gpu->A[i], gpu->B[i], gpu->C[i]);
+	// }
+
+	int cpu_time = 0;
+
+	start_time = timer_get_usec();
 	for (i = 0; i < 64; i++) {
-               trace("%d + %d = %d\n", gpu->A[i], gpu->B[i], gpu->C[i]);
-        }
+		gpu->C[i] = gpu->A[i] + gpu->B[i];
+	}
+	end_time = timer_get_usec();
+	cpu_time = end_time - start_time;
+
+	printk("Time taken on CPU: %d us\n", cpu_time);
+	printk("Time taken on GPU: %d us\n", gpu_time);
+
 	gpu_release(gpu);
 }
