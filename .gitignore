@@ -1,0 +1,10 @@
+venv/
+
+__pycache__/
+
+*.list
+*.bin
+*.o
+code/build/
+
+
