@@ -10,9 +10,9 @@
 
 struct GPU
 {
-	uint32_t A[64];
-	uint32_t B[64];
-	uint32_t C[64];
+	uint32_t A[256];
+	uint32_t B[256];
+	uint32_t C[256];
 	unsigned code[sizeof(addshader) / sizeof(uint32_t)];
 	unsigned unif[4];
 	unsigned mail[2];
@@ -78,7 +78,7 @@ void notmain(void)
 	if (ret < 0)
 		return;
 
-	for (i = 0; i < 64; i++) {
+	for (i = 0; i < 256; i++) {
 		gpu->A[i] = 40+i;
 		gpu->B[i] = 10+i;
 		gpu->C[i] = 0xff;
@@ -86,7 +86,7 @@ void notmain(void)
 
 	memcpy((void *)gpu->code, addshader, sizeof gpu->code);
 
-	gpu->unif[0] = 4; // gpu->mail[0] - offsetof(struct GPU, code);
+	gpu->unif[0] = 16; // gpu->mail[0] - offsetof(struct GPU, code);
 	gpu->unif[1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A);
 	gpu->unif[2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B);
 	gpu->unif[3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C);
@@ -102,14 +102,14 @@ void notmain(void)
 
 	printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
 
-	// for (i = 0; i < 64; i++) {
-	// 	trace("%d + %d = %d\n", gpu->A[i], gpu->B[i], gpu->C[i]);
-	// }
+	for (i = 0; i < 256; i++) {
+	    trace("%x + %x = %x\n", gpu->A[i], gpu->B[i], gpu->C[i]);
+	}
 
 	int cpu_time = 0;
 
 	start_time = timer_get_usec();
-	for (i = 0; i < 64; i++) {
+	for (i = 0; i < 256; i++) {
 		gpu->C[i] = gpu->A[i] + gpu->B[i];
 	}
 	end_time = timer_get_usec();

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t addshader[64];
+extern uint32_t addshader[72];
 
 #define smi_start (addshader + 0)
 
