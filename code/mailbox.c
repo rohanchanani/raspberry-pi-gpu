@@ -76,7 +76,6 @@ uint32_t mailbox_read(uint8_t channel)
 	while (1)
 	{
 		data = MAILBOX_READ;
-		// Check that the channel matches.
 		if ((data & 0xF) == channel)
 			return data & ~0xF;
 	}
@@ -88,17 +87,10 @@ uint32_t mailbox_read(uint8_t channel)
 int mbox_property(uint32_t *msg)
 {
 	// Check alignment.
-	if ((uint32_t)msg & 0xF)
-		return 0;
+	if ((uint32_t)msg & 0xF) return 0;
 	mailbox_write(8, (uint32_t)msg);
-	// Wait for the response.
-	trace("sent call\n");
-	//
-	while (mailbox_read(8) != (uint32_t)msg)
-	{
-	}
-	trace("received call\n");
-	// The response code is in msg[1]; 0x80000000 indicates success.
+	while (mailbox_read(8) != (uint32_t)msg);
+
 	return (msg[1] == 0x80000000);
 }
 
@@ -217,9 +209,6 @@ unsigned gpu_fft_base_exec_direct(
 	uint32_t unifs,
 	int num_qpus)
 {
-
-	unsigned q, t;
-
 	PUT32(V3D_DBCFG, 0); // Disallow IRQ
 
 	PUT32(V3D_DBQITE, 0);  // Disable IRQ
@@ -230,21 +219,14 @@ unsigned gpu_fft_base_exec_direct(
 
 	PUT32(V3D_SRQCS, (1 << 7) | (1 << 8) | (1 << 16)); // Reset error bit and counts
 
-	for (q = 0; q < num_qpus; q++)
+	for (unsigned q = 0; q < num_qpus; q++)
 	{ // Launch shader(s)
-		PUT32(V3D_SRQUA, (uint32_t)unifs);
-		PUT32(V3D_SRQPC, (uint32_t)code);
+		PUT32(V3D_SRQUA, (uint32_t)unifs); // Set the uniforms address
+		PUT32(V3D_SRQPC, (uint32_t)code); // Set the program counter
 	}
 
 	// Busy wait polling
-	for (;;)
-	{
-		if (((GET32(V3D_SRQCS) >> 16) & 0xff) == num_qpus)
-		{
-			printk("got value %x\n", GET32(V3D_SRQCS));
-			break; // All done?
-		}
-	}
+	while (((GET32(V3D_SRQCS) >> 16) & 0xff) != num_qpus);
 
 	return 0;
 }

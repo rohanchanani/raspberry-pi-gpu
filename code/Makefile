@@ -1,6 +1,6 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-PROGS := smitest.c
+PROGS := simplegpu.c
 
 COMMON_SRC := shader.c mailbox.c
 
