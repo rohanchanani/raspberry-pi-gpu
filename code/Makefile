@@ -1,8 +1,8 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-PROGS := parallel-add.c
+PROGS := simple-gpu-test.c
 
-COMMON_SRC := hello.c mailbox.c
+COMMON_SRC := gpu.c
 
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/staff-hw-spi.o
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/kmalloc.o

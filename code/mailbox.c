@@ -57,8 +57,10 @@ uint32_t mailbox_read(uint8_t channel) {
     while (1) {
         data = MAILBOX_READ;
         // Check that the channel matches.
-        if ((data & 0xF) == channel)
-            return data & ~0xF;
+		trace("received response, getting %x\n", data);
+        if ((data & 0xF) == channel) {
+			return data & ~0xF;
+		}
     }
 }
 
@@ -73,7 +75,9 @@ int mbox_property(uint32_t *msg) {
     // Wait for the response.
     trace("sent call\n");
     //
-    while (mailbox_read(8) != (uint32_t)msg) { }
+    while (mailbox_read(8) != (uint32_t)msg) {
+		trace("waiting for response, getting %x\n", mailbox_read(8));
+	}
     trace("received call\n");
     // The response code is in msg[1]; 0x80000000 indicates success.
     return (msg[1] == 0x80000000);

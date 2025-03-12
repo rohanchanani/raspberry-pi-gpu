@@ -70,5 +70,7 @@ uint32_t mem_unlock(uint32_t handle);
 uint32_t qpu_enable(uint32_t enable);
 uint32_t execute_qpu(uint32_t num_qpus, uint32_t control, uint32_t noflush, uint32_t timeout);
 
+void clean_and_invalidate_cache();
+
 #endif /* BARE_MBOX_H */
 

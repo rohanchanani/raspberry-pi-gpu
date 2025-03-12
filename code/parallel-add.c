@@ -30,6 +30,7 @@ struct GPU_old
         unsigned handle;
 };
 
+
 int gpu_prepare(
 	volatile struct GPU **gpu)
 {
@@ -49,8 +50,9 @@ int gpu_prepare(
 	}
 	vc = mem_lock(handle);
 	trace("vc=%x\n", vc);
-	ptr = (volatile struct GPU*) (vc - 0x40000000);
-	//trace("ptr=%p\n", ptr);
+	ptr = (volatile struct GPU*) (vc - 0x2e000000);
+
+	trace("ptr=%p\n", ptr);
 	if (ptr == NULL)
 	{	mem_free(handle);
 		mem_unlock(handle);
