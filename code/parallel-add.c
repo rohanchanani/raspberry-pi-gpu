@@ -13,7 +13,7 @@ struct GPU
 	uint32_t A[64];
 	uint32_t B[64];
 	uint32_t C[64];
-	unsigned code[sizeof(shader) / sizeof(uint32_t)];
+	unsigned code[sizeof(addshader) / sizeof(uint32_t)];
 	unsigned unif[4];
 	unsigned mail[2];
 	unsigned handle;
@@ -84,7 +84,7 @@ void notmain(void)
 		gpu->C[i] = 0xff;
 	}
 
-	memcpy((void *)gpu->code, shader, sizeof gpu->code);
+	memcpy((void *)gpu->code, addshader, sizeof gpu->code);
 
 	gpu->unif[0] = 4; // gpu->mail[0] - offsetof(struct GPU, code);
 	gpu->unif[1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A);
@@ -93,7 +93,10 @@ void notmain(void)
 
 	printk("Memory before running code: %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
 	trace("Executing process... result: %d\n", gpu_execute(gpu));
-	printk("Memory after running code:  %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
-
+	printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
+	
+	for (i = 0; i < 64; i++) {
+               trace("%d + %d = %d\n", gpu->A[i], gpu->B[i], gpu->C[i]);
+        }
 	gpu_release(gpu);
 }
