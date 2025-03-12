@@ -325,6 +325,18 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Add a new section for disassembly -->
+        <div class="disassembler-panel">
+            <h2>Disassembler</h2>
+            <textarea id="disassembly-input" placeholder="Paste hex code here (e.g., '0x00101a00, 0xe0021c67')"></textarea>
+            <button id="disassemble-btn">Disassemble</button>
+            
+            <div class="disassembly-results">
+                <h3>Disassembled Code</h3>
+                <pre id="disassembly-output"></pre>
+            </div>
+        </div>
     </div>
     
     <script src="scripts.js"></script>

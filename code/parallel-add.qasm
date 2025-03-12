@@ -36,12 +36,17 @@ nop
 
 :loop
     mov r1, vpm
+    mov -, vw_wait
+
     mov r2, vpm   
+    mov -, vw_wait
+
 
     # Sum = A[lane] + B[lane]
     add r1, r1, r2
 
-    mov vpm, r4
+    mov vpm, r1
+    mov -, vw_wait
 
     sub.setf ra0, ra0, 1
     brr.anynz -, :loop

@@ -632,4 +632,110 @@ document.addEventListener('DOMContentLoaded', function() {
         
         instructionReferenceBody.appendChild(row);
     });
+
+    // Add disassembler button handler
+    document.getElementById('disassemble-btn').addEventListener('click', function() {
+        const input = document.getElementById('disassembly-input').value.trim();
+        if (input) {
+            const disassembledCode = disassembleCode(input);
+            document.getElementById('disassembly-output').textContent = disassembledCode;
+        }
+    });
+
+    // Main disassembler function
+    function disassembleCode(hexCode) {
+        // Split input into individual hex values
+        const hexValues = hexCode.split(/\s+/).filter(x => x);
+        let output = '';
+        
+        // Process two values at a time
+        for (let i = 0; i < hexValues.length; i += 2) {
+            if (i + 1 >= hexValues.length) {
+                output += `Error: Missing second word for instruction at ${hexValues[i]}\n`;
+                break;
+            }
+            
+            const word0Hex = hexValues[i];
+            const word1Hex = hexValues[i + 1];
+            
+            // Validate hex format
+            if (!/^0x[0-9a-fA-F]{8}$/.test(word0Hex) || !/^0x[0-9a-fA-F]{8}$/.test(word1Hex)) {
+                output += `Error: Invalid hex format at ${word0Hex} ${word1Hex}\n`;
+                continue;
+            }
+            
+            // Convert to numbers
+            const word0 = parseInt(word0Hex, 16);
+            const word1 = parseInt(word1Hex, 16);
+            
+            // Disassemble the instruction pair
+            const instruction = disassembleInstruction(word0, word1);
+            output += `${word0Hex} ${word1Hex}  ${instruction}\n`;
+        }
+        
+        return output;
+    }
+
+    // Disassemble a single instruction
+    function disassembleInstruction(word0, word1) {
+        // Extract common fields
+        const opcode = (word0 >> 24) & 0xFF;
+        const dstReg = (word0 >> 6) & 0x3F;
+        const srcAReg = (word0 >> 12) & 0x3F;
+        const srcBReg = (word1 >> 17) & 0x3F;
+        const condition = (word1 >> 23) & 0x7;
+        const isImmediate = (word1 & 0x10000000) !== 0;
+        const immediateValue = word1 & 0xFFFF;
+        
+        // Get register names
+        const dstRegName = getRegisterName(dstReg);
+        const srcARegName = getRegisterName(srcAReg);
+        const srcBRegName = getRegisterName(srcBReg);
+        
+        // Get condition name
+        const conditionName = getConditionName(condition);
+        
+        // Lookup opcode
+        const opcodeInfo = Object.entries(aluOpcodes).find(([_, code]) => code === opcode);
+        const mnemonic = opcodeInfo ? opcodeInfo[0] : 'unknown';
+        
+        // Handle special instructions
+        if (mnemonic === 'thrend') {
+            return 'thrend';
+        }
+        if (mnemonic === 'thrsw') {
+            return 'thrsw';
+        }
+        
+        // Handle load/store instructions
+        if (mnemonic === 'ldvpm') {
+            return `ldvpm ${dstRegName}`;
+        }
+        if (mnemonic === 'stvpm') {
+            return `stvpm ${srcARegName}`;
+        }
+        
+        // Handle ALU instructions
+        if (mnemonic in aluOpcodes) {
+            if (isImmediate) {
+                return `${mnemonic} ${dstRegName}, ${srcARegName}, #${immediateValue}`;
+            } else {
+                return `${mnemonic} ${dstRegName}, ${srcARegName}, ${srcBRegName}`;
+            }
+        }
+        
+        return `unknown (opcode: 0x${opcode.toString(16)})`;
+    }
+
+    // Get register name from register number
+    function getRegisterName(regNum) {
+        const entry = Object.entries(registerMap).find(([_, num]) => num === regNum);
+        return entry ? entry[0] : `r${regNum}`;
+    }
+
+    // Get condition name from condition code
+    function getConditionName(condCode) {
+        const entry = Object.entries(conditionCodes).find(([_, code]) => code === condCode);
+        return entry ? entry[0] : 'unknown';
+    }
 });
