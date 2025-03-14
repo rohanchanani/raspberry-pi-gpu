@@ -1,8 +1,8 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-PROGS := parallel-add.c
+PROGS := vector-multiply.c
 
-COMMON_SRC := addshader.c mailbox.c
+COMMON_SRC := mulshader.c mailbox.c
 
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/staff-hw-spi.o
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/kmalloc.o
