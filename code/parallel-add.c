@@ -7,12 +7,14 @@
 
 #define GPU_MEM_FLG 0xC // cached=0xC; direct=0x4
 
+#define N 1024 // must be a multiple of 64
+
 
 struct GPU
 {
-	uint32_t A[256];
-	uint32_t B[256];
-	uint32_t C[256];
+	uint32_t A[N];
+	uint32_t B[N];
+	uint32_t C[N];
 	unsigned code[sizeof(addshader) / sizeof(uint32_t)];
 	unsigned unif[4];
 	unsigned mail[2];
@@ -78,15 +80,15 @@ void notmain(void)
 	if (ret < 0)
 		return;
 
-	for (i = 0; i < 256; i++) {
-		gpu->A[i] = 40+i;
-		gpu->B[i] = 10+i;
-		gpu->C[i] = 0xff;
+	for (i = 0; i < N; i++) {
+		gpu->A[i] = 32+i;
+		gpu->B[i] = 64+i;
+		gpu->C[i] = 0;
 	}
 
 	memcpy((void *)gpu->code, addshader, sizeof gpu->code);
 
-	gpu->unif[0] = 16; // gpu->mail[0] - offsetof(struct GPU, code);
+	gpu->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct GPU, code);
 	gpu->unif[1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A);
 	gpu->unif[2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B);
 	gpu->unif[3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C);
@@ -102,14 +104,18 @@ void notmain(void)
 
 	printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
 
-	for (i = 0; i < 256; i++) {
-	    trace("%x + %x = %x\n", gpu->A[i], gpu->B[i], gpu->C[i]);
+	for (i = 0; i < N; i++) {
+	    if(gpu->C[i] != 32+64+i+i) {
+	        printk("Iteration %d: %d + %d = %d. Answer is INCORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
+	    } else if (i % 64 == 0) {
+	        printk("Iteration %d: %d + %d = %d. Answer is CORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
+	    }
 	}
 
 	int cpu_time = 0;
 
 	start_time = timer_get_usec();
-	for (i = 0; i < 256; i++) {
+	for (i = 0; i < N; i++) {
 		gpu->C[i] = gpu->A[i] + gpu->B[i];
 	}
 	end_time = timer_get_usec();
