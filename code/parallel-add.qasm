@@ -15,7 +15,7 @@ mov r3, 256
 :loop
 
    mov vr_setup, vdr_setup_1(64)
-   mov vr_setup, vdr_setup_0(0, 16, 1, vdr_h32(2, 0, 0))
+   mov vr_setup, vdr_setup_0(0, 16, 4, vdr_h32(2, 0, 0))
    mov vr_addr, ra1
    mov -, vr_wait
 
@@ -23,7 +23,7 @@ mov r3, 256
     # 2) DMA read of B
     #-----------------------------------------------------
    mov vr_setup, vdr_setup_1(64)
-   mov vr_setup, vdr_setup_0(0, 16, 1 vdr_h32(2, 1, 0))
+   mov vr_setup, vdr_setup_0(0, 16, 4, vdr_h32(2, 1, 0))
    mov vr_addr, ra2
    mov -, vr_wait
 

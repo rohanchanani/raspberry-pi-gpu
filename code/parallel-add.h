@@ -2,7 +2,7 @@
 #include "rpi.h"
 #include <stdint.h>
 
-#define N 1024 // must be a multiple of 64
+#define N 64 // must be a multiple of 64
 
 struct addGPU
 {

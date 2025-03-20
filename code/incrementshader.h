@@ -1,5 +1,5 @@
-#ifndef addshader_H
-#define addshader_H
+#ifndef incrementshader_H
+#define incrementshader_H
 
 #include <inttypes.h>
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t addshader[84];
+extern uint32_t incrementshader[104];
 
 
 #ifdef __cplusplus
