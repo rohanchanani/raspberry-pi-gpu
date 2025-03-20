@@ -1,14 +1,16 @@
 #include "rpi.h"
 #include <stddef.h>
 #include <string.h>
-
+// #include "vector-multiply.h"
 #include "mailbox.h"
 #include "mulshader.h"
 
+#define N 256
+
 #define GPU_MEM_FLG 0xC // cached=0xC; direct=0x4
 
-#define N 1024 // must be a multiple of 64
-
+#define NUM_UNIF 4
+#define NUM_QPUS 4
 
 struct GPU
 {
@@ -16,7 +18,7 @@ struct GPU
 	uint32_t B[N];
 	uint32_t C[N];
 	unsigned code[sizeof(mulshader) / sizeof(uint32_t)];
-	unsigned unif[4];
+	unsigned unif[6];
 	unsigned mail[2];
 	unsigned handle;
 };
@@ -57,10 +59,11 @@ int gpu_prepare(
 
 unsigned gpu_execute(volatile struct GPU *gpu)
 {
+	qpu_enable(1);
 	return gpu_fft_base_exec_direct(
 		(uint32_t)gpu->mail[0],
 		(uint32_t)gpu->mail[1],
-		4
+		NUM_QPUS
 	);
 }
 
@@ -72,43 +75,68 @@ void gpu_release(volatile struct GPU *gpu)
 	qpu_enable(0);
 }
 
-void notmain(void)
-{
-	int i, j;
+uint32_t vector_multiply(uint32_t A[], uint32_t B[], uint32_t C[]) {
 	volatile struct GPU *gpu;
 	int ret = gpu_prepare(&gpu);
 	if (ret < 0)
-		return;
+		return -1;
 
-	for (i = 0; i < N; i++) {
-		gpu->A[i] = 32+i;
-		gpu->B[i] = 64+i;
-		gpu->C[i] = 0;
-	}
+	memcpy((void *)gpu->A, A, N * sizeof(uint32_t));
+	memcpy((void *)gpu->B, B, N * sizeof(uint32_t));
+	memcpy((void *)gpu->C, C, N * sizeof(uint32_t));
 
 	memcpy((void *)gpu->code, mulshader, sizeof gpu->code);
 
-	gpu->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct GPU, code);
+	gpu->unif[0] = N / (16 * NUM_QPUS);
 	gpu->unif[1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A);
 	gpu->unif[2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B);
 	gpu->unif[3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C);
+	gpu->unif[4] = N / NUM_QPUS;
+	gpu->unif[5] = 69;
 
+	int iret = gpu_execute(gpu);
+
+	memcpy(C, (void *)gpu->C, N * sizeof(uint32_t));
+
+	gpu_release(gpu);
+
+	return iret;
+}
+
+#if 1
+void notmain(void)
+{
+	int i, j;
+
+	uint32_t A[N];
+	uint32_t B[N];
+	uint32_t C[N];
+
+	for (i = 0; i < N; i++) {
+		A[i] = 0;
+		B[i] = 64+i;
+		C[i] = 0x69;
+	}
+
+	printk("Size of mulshader: %d\n", sizeof(mulshader));
+
+	
 	printk("Running code on GPU...\n");
-	printk("Memory before running code: %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
+	printk("Memory before running code: %x %x %x %x\n", C[0], C[1], C[2], C[3]);
 
 	int start_time = timer_get_usec();
-	int iret = gpu_execute(gpu);
+	int iret = vector_multiply(A, B, C);
 	int end_time = timer_get_usec();
 
 	int gpu_time = end_time - start_time;
 
-	printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
+	printk("Memory after running code:  %d %d %d %d\n", C[0], C[1], C[2], C[3]);
 
 	for (i = 0; i < N; i++) {
-	    if(gpu->C[i] != (32+i)*(64+i)) {
-	        printk("Iteration %d: %d * %d = %d. Answer is INCORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
+	    if(C[i] != (32+i)*(64+i)) {
+	        printk("Iteration %d: %d * %d = %d. Answer is INCORRECT\n", i, A[i], B[i], C[i]);
 	    } else if (i % 64 == 0) {
-	        printk("Iteration %d: %d * %d = %d. Answer is CORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
+	        printk("Iteration %d: %d * %d = %d. Answer is CORRECT\n", i, A[i], B[i], C[i]);
 	    }
 	}
 
@@ -116,13 +144,13 @@ void notmain(void)
 
 	start_time = timer_get_usec();
 	for (i = 0; i < N; i++) {
-		gpu->C[i] = gpu->A[i] * gpu->B[i];
+		C[i] = A[i] * B[i];
 	}
 	end_time = timer_get_usec();
 	cpu_time = end_time - start_time;
 
 	printk("Time taken on CPU: %d us\n", cpu_time);
 	printk("Time taken on GPU: %d us\n", gpu_time);
-
-	gpu_release(gpu);
 }
+
+#endif

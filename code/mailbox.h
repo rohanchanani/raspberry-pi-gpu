@@ -57,18 +57,8 @@ uint32_t mem_unlock(uint32_t handle);
 
 /* QPU control functions.
  *
- * qpu_enable: Enable (or disable) the QPU. Pass 1 to enable, 0 to disable.
- *
- * execute_qpu: Launches QPU code.
- *              Parameters:
- *                num_qpus - number of QPUs to execute
- *                control  - control flags for execution
- *                noflush  - set to nonzero to disable flush operations
- *                timeout  - timeout in milliseconds
- *              Returns a status code (typically the first response word).
- */
+ * qpu_enable: Enable (or disable) the QPU. Pass 1 to enable, 0 to disable. */
 uint32_t qpu_enable(uint32_t enable);
-uint32_t execute_qpu(uint32_t num_qpus, uint32_t control, uint32_t noflush, uint32_t timeout);
 
 unsigned gpu_fft_base_exec_direct(uint32_t code, uint32_t unifs, int num_qpus);
 
