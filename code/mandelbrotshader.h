@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t mandelbrotshader[96];
+extern uint32_t mandelbrotshader[174];
 
 
 #ifdef __cplusplus

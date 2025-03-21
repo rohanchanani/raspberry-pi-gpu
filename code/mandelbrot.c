@@ -9,8 +9,8 @@
 #define GPU_MEM_FLG 0xC // cached=0xC; direct=0x4
 
 #define RESOLUTION 64
-#define MAX_ITERS 1
-#define NUM_QPUS 1
+#define MAX_ITERS 100
+#define NUM_QPUS 8 
 
 struct GPU
 {
@@ -104,9 +104,6 @@ static int int_to_ascii(int val, char *buf)
 }
 
 
-
-// Build a small 16x16 PGM image in one buffer.
-// Returns pointer to the data and sets *outSize to total bytes.
 char *buildPGM(int *outSize, int HEIGHT, int WIDTH, const unsigned char input_image[HEIGHT][WIDTH])
 {
     int pos = 0;
@@ -174,20 +171,21 @@ void notmain(void)
 	    gpu->unif[i][4] = i;
 	    gpu->unif[i][5] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, output);
 	    gpu->unif_ptr[i] = gpu->mail[0] - offsetof(struct GPU, code) + (uint32_t) &gpu->unif[i][0] - (uint32_t) gpu;
-	    //printk("UNIFORM %d: NUM_ITERS: %d A: %x, B: %x, C: %x ADDRESS: %x\n", i, gpu->unif[i][0], gpu->unif[i][1], gpu->unif[i][2], gpu->unif[i][3], gpu->unif_ptr[i]);
+	}
+	for (int i=0; i<2*RESOLUTION; i++) {
+		for (int j=0; j<2*RESOLUTION; j++) {
+			gpu->output[i][j] = 0;
+		}
 	}
 	printk("Running code on GPU...\n");
-	//printk("Memory before running code: %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
 
 	int start_time = timer_get_usec();
 	int iret = gpu_execute(gpu);
 	int end_time = timer_get_usec();
 	printk("DONE!\n");
 	int gpu_time = end_time - start_time;
-
-	//printk("Memory after running code:  %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
        
-
+	printk("Running code on CPU...\n");
 	uint32_t output_cmp[2*RESOLUTION][2*RESOLUTION];
 	int cpu_time = 0;
 	start_time = timer_get_usec();
@@ -195,10 +193,6 @@ void notmain(void)
 		float y = -1.0f + (pun.f * (float) i);
 		for (int j=0; j<2*RESOLUTION; j++) {
 		    float x = -1.0f + (pun.f * (float)  j);
-		    //output_x.f = x;
-		    //if ( i % 10==0 && j % 10==0) {
-		    	//trace("%d, %d: %x, %x\n", i, j, output_y.i, output_x.i);
-		    //}
 		    float u = 0.0;
 		    float v = 0.0;
 		    float u2 = u*u;
@@ -221,61 +215,40 @@ void notmain(void)
 	cpu_time = end_time - start_time;
 
  
-	for (int i = 0; i < 2*RESOLUTION; i++) {
-	    for (int j=0; j < 2*RESOLUTION; j++) {
-		if (gpu->output[i][j] == 55)  {
-		    printk("Iteration %d, %d: x = %x.\n", i, j, gpu->output[i][j]);
-		}
-	    	//if(gpu->output[i][j] != output_cmp[i][j]) {
-	        	//printk("Iteration %d, %d: %d != %d. Answer is INCORRECT\n", i, j, gpu->output[i][j], output_cmp[i][j]);
-	    	//} else if (i % RESOLUTION/4 == 0 && j % RESOLUTION/4 == 0) {
-	        	//printk("Iteration %d, %d: %d = %d. Answer is CORRECT\n", i, j, gpu->output[i][j], output_cmp[i][j]);
-	    	//}
-	    }
-	}
 	printk("Time taken on CPU: %d us\n", cpu_time);
 	printk("Time taken on GPU: %d us\n", gpu_time);
-	
-	unsigned char CPU_OUT[2*RESOLUTION][2*RESOLUTION];
-	for (int i=0; i<2*RESOLUTION; i++) {
-	    for (int j=0; j<2*RESOLUTION; j++) {
-	    	if (output_cmp[i][j] > 0) {
-		    CPU_OUT[i][j] = 255;
-		} else {
-		    CPU_OUT[i][j] = 0;
-		}
-	    }
-	}
-	printk("%d\n", CPU_OUT[0][0]);
+
+        printk("Speedup: %dx\n", cpu_time/gpu_time);	
+
+	printk("%d\n", output_cmp[0][0]);
+	unsigned char GPU_OUT[2*RESOLUTION][2*RESOLUTION];
+        for (int i=0; i<2*RESOLUTION; i++) {
+            for (int j=0; j<2*RESOLUTION; j++) {
+                if (gpu->output[i][j] > 0) {
+                    GPU_OUT[i][j] = 255;
+                } else {
+                    GPU_OUT[i][j] = 0;
+                }
+            }
+        }
 	kmalloc_init(8*FAT32_HEAP_MB);
   	pi_sd_init();
 
-  	printk("Reading the MBR.\n");
 	mbr_t *mbr = mbr_read();
 
-  	printk("Loading the first partition.\n");
   	mbr_partition_ent_t partition;
   	memcpy(&partition, mbr->part_tab1, sizeof(mbr_partition_ent_t));
   	assert(mbr_part_is_fat32(partition.part_type));
 
- 	printk("Loading the FAT.\n");
   	fat32_fs_t fs = fat32_mk(&partition);
 
-  	printk("Loading the root directory.\n");
   	pi_dirent_t root = fat32_get_root(&fs);
-	/*
-	FILE *fp = fopen("output.pgm", "wb");
-	fprintf(fp, "P5\n%d %d\n255\n", 2*RESOLUTION, 2*RESOLUTION);
-	fwrite(CPU_OUT, sizeof(CPU_OUT), 1, fp);
-	fclose(fp);
-	*/
 
-	printk("Creating hello.txt\n");
 	char *hello_name = "OUTPUT.PGM";
 	fat32_delete(&fs, &root, hello_name);
 	fat32_create(&fs, &root, hello_name, 0);
   	int size;
-	char *data = buildPGM(&size, 2*RESOLUTION, 2*RESOLUTION, CPU_OUT);
+	char *data = buildPGM(&size, 2*RESOLUTION, 2*RESOLUTION, GPU_OUT);
   	pi_file_t hello = (pi_file_t) {
     		.data = data,
     		.n_data = size,
@@ -283,5 +256,7 @@ void notmain(void)
   	};
 
   	fat32_write(&fs, &root, hello_name, &hello);
+
+
 	gpu_release(gpu);
 }

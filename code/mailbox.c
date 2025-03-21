@@ -209,8 +209,6 @@ unsigned gpu_fft_base_exec_direct(
 		PUT32(V3D_SRQPC, (uint32_t)code); // Set the program counter
 	}
 
-	//printk("# of programs launched: %d\n", GET32(V3D_SRQCS) >> 8);
-
 
 	// Busy wait polling
 	while (((GET32(V3D_SRQCS) >> 16) & 0xff) != num_qpus);

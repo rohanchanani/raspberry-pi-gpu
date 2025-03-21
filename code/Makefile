@@ -1,8 +1,10 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
+PROGS := parallel-add.c
+
 PROGS := mandelbrot.c
 
-COMMON_SRC := mandelbrotshader.c mailbox.c
+COMMON_SRC := mandelbrotshader.c addshader.c mailbox.c
 COMMON_SRC += fat32/code/pi-sd.c fat32/code/mbr-helpers.c fat32/code/fat32-helpers.c fat32/code/fat32-lfn-helpers.c fat32/code/external-code/unicode-utf8.c fat32/code/external-code/emmc.c fat32/code/fat32.c fat32/code/mbr.c #  external-code/mbox.c
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/staff-hw-spi.o
 STAFF_OBJS += $(CS140E_2025_PATH)/libpi/staff-objs/kmalloc.o
