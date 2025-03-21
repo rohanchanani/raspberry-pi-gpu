@@ -27,7 +27,7 @@ void fire_init(void)
     }
 
     vec_mul_init(&mul_gpu, VEC_WIDTH);
-    vec_add_init(&add_gpu);
+    vec_add_init(&add_gpu, VEC_WIDTH);
 }
 
 void update_fire_row(int row)

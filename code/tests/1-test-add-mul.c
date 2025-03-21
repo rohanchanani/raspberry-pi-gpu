@@ -8,7 +8,7 @@ void test_add_mul(void)
     volatile struct addGPU *add_gpu;
 
     vec_mul_init(&gpu, N);
-    vec_add_init(&add_gpu);
+    vec_add_init(&add_gpu, N);
 
     for (i = 0; i < N; i++)
     {
@@ -90,6 +90,8 @@ void test_add_mul(void)
     printk("CPU Addition Time: %d us\n", cpu_add_time);
     printk("GPU Addition Time: %d us\n", gpu_add_time);
 
+    printk("Speedup: %d percent\n", (cpu_mul_time - gpu_mul_time) * 100 / cpu_mul_time);
+
     vec_mul_release(gpu);
     vec_add_release(add_gpu);
 }
@@ -100,5 +102,5 @@ void notmain(void)
     
     test_add_mul();
 
-    delay_ms(6000);
+    // delay_ms(6000);
 }

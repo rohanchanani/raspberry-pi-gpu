@@ -61,7 +61,7 @@ int pi_sd_write(void *data, uint32_t lba, uint32_t nsec) {
   if((res = sd_writeblock(data, lba, nsec)) != 512 * nsec)
     panic("could not write to sd card: result = %d\n", res);
 
-  if(trace_p)
-    trace("sd_write: lba=<%x>, cksum=%x\n", lba, our_crc32(data,nsec*512));
+  // if(trace_p)
+    // trace("sd_write: lba=<%x>, cksum=%x\n", lba, our_crc32(data,nsec*512));
   return 1;
 }

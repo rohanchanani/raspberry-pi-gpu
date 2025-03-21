@@ -1,9 +1,6 @@
 #include "rpi.h"
 #include "vector-multiply.h"
 #include "parallel-add.h"
-#include "vector-increment.h"
-
-
 
 #define MATRIX_SIZE 64
 
@@ -152,6 +149,7 @@ void test_matmul(void)
 
     printk("\n\nCPU Matrix Multiplication Time: %d us\n", cpu_matmul_time);
     printk("GPU Matrix Multiplication Time: %d us\n", gpu_matmul_time);
+    printk("Speedup: %d percent\n", cpu_matmul_time * 100 / gpu_matmul_time);
 }
 
 void notmain(void)
@@ -159,5 +157,5 @@ void notmain(void)
     printk("Testing matrix multiplication on GPU...\n");
     test_matmul();
 
-    delay_ms(10000);
+    // delay_ms(10000);
 }

@@ -1,5 +1,5 @@
-#ifndef shader_H
-#define shader_H
+#ifndef simpleshader_H
+#define simpleshader_H
 
 #include <inttypes.h>
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t shader[102];
+extern uint32_t simpleshader[20];
 
 
 #ifdef __cplusplus

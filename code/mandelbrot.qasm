@@ -1,4 +1,4 @@
-#.include "../share/vc4inc/vc4.qinc"
+.include "../share/vc4inc/vc4.qinc"
 
 # Read uniforms into registers
 mov   ra0, unif #RESOLUTION    
