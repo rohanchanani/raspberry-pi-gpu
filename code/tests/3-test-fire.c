@@ -95,28 +95,34 @@ void display_fire(void)
 {
     int x, y;
 
-    printk("\f\n\n\n\n\n\n\n");
+    char buffer[(HEIGHT) * (WIDTH + 1) + 8]; // +8 for initial newlines
+    int pos = 0;
+    
 
-    for (y = 0; y < HEIGHT; y += 2)
-    {
-        for (x = 0; x < WIDTH; x += 2)
-        {
+    buffer[pos++] = '\f';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    buffer[pos++] = '\n';
+    
+    for (y = 0; y < HEIGHT; y += 2) {
+        for (x = 0; x < WIDTH; x += 2) {
             int value = heat[y * WIDTH + x];
-
             char c = ' ';
-            if (value > 1000)
-                c = '#';
-            else if (value > 700)
-                c = '*';
-            else if (value > 400)
-                c = '+';
-            else if (value > 100)
-                c = '.';
+            if (value > 1000) c = '#';
+            else if (value > 700) c = '*';
+            else if (value > 400) c = '+';
+            else if (value > 100) c = '.';
             
-            printk("%c", c);
+            buffer[pos++] = c;
         }
-        printk("\n");
+        buffer[pos++] = '\n';
     }
+    
+    printk("%s", buffer);
 }
 
 void fire_animation(void)

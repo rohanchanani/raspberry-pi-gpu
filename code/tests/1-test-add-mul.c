@@ -99,4 +99,6 @@ void notmain(void)
     printk("Testing addition and multiplication on GPU...\n");
     
     test_add_mul();
+
+    delay_ms(6000);
 }

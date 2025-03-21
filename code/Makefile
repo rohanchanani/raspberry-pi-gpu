@@ -1,8 +1,8 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-# PROGS := $(wildcard tests/*.c)
+PROGS := $(wildcard tests/*.c)
 
-PROGS := tests/3-test-fire.c
+# PROGS := tests/3-test-fire.c
 
 COMMON_SRC := mulshader.c mailbox.c addshader.c parallel-add.c vector-multiply.c incrementshader.c vector-increment.c
 

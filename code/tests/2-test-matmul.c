@@ -158,4 +158,6 @@ void notmain(void)
 {
     printk("Testing matrix multiplication on GPU...\n");
     test_matmul();
+
+    delay_ms(10000);
 }
