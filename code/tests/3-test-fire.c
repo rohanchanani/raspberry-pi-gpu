@@ -98,6 +98,9 @@ void display_fire(void)
     char buffer[(HEIGHT) * (WIDTH + 1) + 8]; // +8 for initial newlines
     int pos = 0;
     
+    for (int i = 0; i < sizeof(buffer); i++) {
+        buffer[i] = '\0';
+    }
 
     buffer[pos++] = '\f';
     buffer[pos++] = '\n';
@@ -133,16 +136,9 @@ void fire_animation(void)
 
     for (frame = 0; frame < 300; frame++)
     {
-
         update_fire();
-
-
         display_fire();
-
-
-        int start = timer_get_usec();
-        while (timer_get_usec() - start < 100)
-            ;
+        delay_ms(10);
     }
 
     vec_mul_release(mul_gpu);
