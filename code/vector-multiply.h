@@ -1,8 +1,7 @@
 #include "mulshader.h"
 #include "rpi.h"
 #include <stdint.h>
-
-#define N 64 // must be a multiple of 64
+#include "max.h"
 
 struct mulGPU
 {
@@ -15,7 +14,7 @@ struct mulGPU
     unsigned handle;
 };
 
-void vec_mul_init(volatile struct mulGPU **gpu);
+void vec_mul_init(volatile struct mulGPU **gpu, int n);
 
 int vec_mul_exec(volatile struct mulGPU * gpu);
 

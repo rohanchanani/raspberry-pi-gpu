@@ -58,7 +58,7 @@ void vec_mul_release(volatile struct mulGPU *gpu)
 	qpu_enable(0);
 }
 
-void vec_mul_init(volatile struct mulGPU **gpu) {
+void vec_mul_init(volatile struct mulGPU **gpu, int n) {
 	int ret = mul_gpu_prepare(gpu);
 	if (ret < 0)
 		return;
@@ -66,11 +66,10 @@ void vec_mul_init(volatile struct mulGPU **gpu) {
 	volatile struct mulGPU *ptr = *gpu;
 	memcpy((void *)ptr->code, mulshader, sizeof ptr->code);
 
-	ptr->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct mulGPU, code);
+	ptr->unif[0] = n / 64; // gpu->mail[0] - offsetof(struct mulGPU, code);
 	ptr->unif[1] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, A);
 	ptr->unif[2] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, B);
 	ptr->unif[3] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, C);
-
 }
 
 int vec_mul_exec(volatile struct mulGPU * gpu)

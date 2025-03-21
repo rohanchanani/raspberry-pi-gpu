@@ -59,6 +59,7 @@ void vec_increment_release(volatile struct incrementGPU *gpu)
 
 void vec_increment_init(volatile struct incrementGPU **gpu)
 {
+	
 	int ret = increment_gpu_prepare(gpu);
 	if (ret < 0)
 		return;
@@ -66,7 +67,7 @@ void vec_increment_init(volatile struct incrementGPU **gpu)
 	volatile struct incrementGPU *ptr = *gpu;
 	memcpy((void *)ptr->code, incrementshader, sizeof ptr->code);
 
-	ptr->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct addGPU, code);
+	ptr->unif[0] = MAX_INC / 64; // gpu->mail[0] - offsetof(struct addGPU, code);
 	ptr->unif[1] = ptr->mail[0] - offsetof(struct incrementGPU, code) + offsetof(struct incrementGPU, A);
 	ptr->unif[2] = ptr->mail[0] - offsetof(struct incrementGPU, code) + offsetof(struct incrementGPU, B);
 }
@@ -88,7 +89,7 @@ void notmain(void)
 
 	vec_add_init(&gpu);
 
-	for (i = 0; i < N; i++)
+	for (i = 0; i < MAX_INC; i++)
 	{
 		gpu->A[i] = 32 + i;
 		gpu->B[i] = 64 + i;

@@ -2,12 +2,12 @@
 #include "rpi.h"
 #include <stdint.h>
 
-#define N 64 // must be a multiple of 64
+#define MAX_INC 64 // must be a multiple of 64
 
 struct incrementGPU
 {
-    uint32_t A[N];
-    uint32_t B[N];
+    uint32_t A[MAX_INC];
+    uint32_t B[MAX_INC];
     unsigned code[sizeof(incrementshader) / sizeof(uint32_t)];
     unsigned unif[4];
     unsigned mail[2];

@@ -1,10 +1,11 @@
-objs/parallel-add.o: parallel-add.c \
+objs/tests/test-matmul.o: tests/test-matmul.c \
  /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/rpi.h \
  /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/libc/demand.h \
  /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/gpio.h \
  /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/rpi-constants.h \
  /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/your-prototypes.h \
- parallel-add.h addshader.h max.h mailbox.h
+ vector-multiply.h mulshader.h parallel-add.h addshader.h \
+ vector-increment.h incrementshader.h
 
 /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/rpi.h:
 
@@ -16,10 +17,14 @@ objs/parallel-add.o: parallel-add.c \
 
 /Users/asanshaygupta/Documents/Codes/Stanford/CS140E/cs140e-25win/libpi/include/your-prototypes.h:
 
+vector-multiply.h:
+
+mulshader.h:
+
 parallel-add.h:
 
 addshader.h:
 
-max.h:
+vector-increment.h:
 
-mailbox.h:
+incrementshader.h:

@@ -1,8 +1,7 @@
 #include "addshader.h"
 #include "rpi.h"
 #include <stdint.h>
-
-#define N 64 // must be a multiple of 64
+#include "max.h"
 
 struct addGPU
 {

@@ -1,6 +1,6 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-PROGS := matmul.c
+PROGS := $(wildcard tests/*.c)
 
 COMMON_SRC := mulshader.c mailbox.c addshader.c parallel-add.c vector-multiply.c incrementshader.c vector-increment.c
 
