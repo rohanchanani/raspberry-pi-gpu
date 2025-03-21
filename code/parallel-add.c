@@ -33,6 +33,7 @@ int add_gpu_prepare(
 		return -4;
 	}
 
+	qpu_enable(1);
 	ptr->handle = handle;
 	ptr->mail[0] = vc + offsetof(struct addGPU, code);
 	ptr->mail[1] = vc + offsetof(struct addGPU, unif);
