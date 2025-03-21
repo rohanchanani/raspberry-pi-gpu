@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "mailbox.h"
-#include "shader.h"
+#include "simpleshader.h"
 
 #define GPU_MEM_FLG 0xC // cached=0xC; direct=0x4
 
@@ -11,8 +11,9 @@
 struct GPU
 {
 	uint32_t output[256];
-	unsigned code[sizeof(shader) / sizeof(uint32_t)];
-	unsigned unif[1];
+	unsigned code[sizeof(simpleshader) / sizeof(uint32_t)];
+	unsigned unif[1][1];
+	unsigned unif_ptr[1];
 	unsigned mail[2];
 	unsigned handle;
 };
@@ -55,8 +56,8 @@ unsigned gpu_execute(volatile struct GPU *gpu)
 {
 	return gpu_fft_base_exec_direct(
 		(uint32_t)gpu->mail[0],
-		(uint32_t)gpu->mail[1],
-		4
+		(uint32_t *)gpu->unif_ptr,
+		1
 	);
 }
 
@@ -70,15 +71,17 @@ void gpu_release(volatile struct GPU *gpu)
 
 void notmain(void)
 {
+	printk("Testing GPU DMA writes...\n");
 	int i, j;
 	volatile struct GPU *gpu;
 	int ret = gpu_prepare(&gpu);
 	if (ret < 0)
 		return;
 
-	memcpy((void *)gpu->code, shader, sizeof gpu->code);
+	memcpy((void *)gpu->code, simpleshader, sizeof gpu->code);
 
-	gpu->unif[0] = gpu->mail[0] - offsetof(struct GPU, code);
+	gpu->unif[0][0] = gpu->mail[0] - offsetof(struct GPU, code);
+	gpu->unif_ptr[0] = gpu->mail[0] - offsetof(struct GPU, code) + (uint32_t)&gpu->unif[0][0] - (uint32_t)gpu;
 	memset((void *)gpu->output, 0xff, sizeof gpu->output);
 
 	printk("Memory before running code: %x %x %x %x\n", gpu->output[0], gpu->output[1], gpu->output[2], gpu->output[3]);
@@ -86,4 +89,6 @@ void notmain(void)
 	printk("Memory after running code:  %x %x %x %x\n", gpu->output[0], gpu->output[1], gpu->output[2], gpu->output[3]);
 
 	gpu_release(gpu);
+
+	// delay_ms(6000);
 }

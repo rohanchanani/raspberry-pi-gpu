@@ -1,4 +1,4 @@
-#.include "../share/vc4inc/vc4.qinc"
+.include "../share/vc4inc/vc4.qinc"
 
 # Read uniforms into registers
 mov   ra0, unif #BLOCKS    
@@ -19,6 +19,7 @@ mov r3, 64
    mov r2, vdr_setup_0(0, 16, 1, vdr_h32(2, 0, 0))
    shl r1, ra4, 5
    add vr_setup, r1, r2
+   mov vr_setup, vdr_setup_0(0, 16, 4, vdr_h32(2, 0, 0))
    mov vr_addr, ra1
    mov -, vr_wait
 
@@ -28,6 +29,7 @@ mov r3, 64
    mov vr_setup, vdr_setup_1(64)
    mov r2, vdr_setup_0(0, 16, 1, vdr_h32(2, 1, 0))
    add vr_setup, r1, r2
+   mov vr_setup, vdr_setup_0(0, 16, 4, vdr_h32(2, 1, 0))
    mov vr_addr, ra2
    mov -, vr_wait
 
