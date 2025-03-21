@@ -8,10 +8,11 @@ struct mulGPU
     uint32_t A[N];
     uint32_t B[N];
     uint32_t C[N];
-    unsigned code[sizeof(mulshader) / sizeof(uint32_t)];
-    unsigned unif[4];
-    unsigned mail[2];
-    unsigned handle;
+    uint32_t code[sizeof(mulshader) / sizeof(uint32_t)];
+    uint32_t unif[NUM_QPUS][5];
+    uint32_t unif_ptr[NUM_QPUS];
+    uint32_t mail[2];
+    uint32_t handle;
 };
 
 void vec_mul_init(volatile struct mulGPU **gpu, int n);

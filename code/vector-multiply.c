@@ -46,8 +46,8 @@ unsigned mul_gpu_execute(volatile struct mulGPU *gpu)
 {
 	return gpu_fft_base_exec_direct(
 		(uint32_t)gpu->mail[0],
-		(uint32_t)gpu->mail[1],
-		4
+		(uint32_t *)gpu->unif_ptr,
+		NUM_QPUS
 	);
 }
 
@@ -67,10 +67,15 @@ void vec_mul_init(volatile struct mulGPU **gpu, int n) {
 	volatile struct mulGPU *ptr = *gpu;
 	memcpy((void *)ptr->code, mulshader, sizeof ptr->code);
 
-	ptr->unif[0] = n / 64; // gpu->mail[0] - offsetof(struct mulGPU, code);
-	ptr->unif[1] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, A);
-	ptr->unif[2] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, B);
-	ptr->unif[3] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, C);
+	for (int i = 0; i < NUM_QPUS; i++)
+	{
+		ptr->unif[i][0] = n / (16 * NUM_QPUS);
+		ptr->unif[i][1] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, A) + i * n * 4 / NUM_QPUS;
+		ptr->unif[i][2] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, B) + i * n * 4 / NUM_QPUS;
+		ptr->unif[i][3] = ptr->mail[0] - offsetof(struct mulGPU, code) + offsetof(struct mulGPU, C) + i * n * 4 / NUM_QPUS;
+		ptr->unif[i][4] = i;
+		ptr->unif_ptr[i] = ptr->mail[0] - offsetof(struct mulGPU, code) + (uint32_t)&ptr->unif[i][0] - (uint32_t)ptr;
+	}
 }
 
 int vec_mul_exec(volatile struct mulGPU * gpu)
@@ -134,4 +139,3 @@ void notmain(void)
 
 #endif
 
-#endif

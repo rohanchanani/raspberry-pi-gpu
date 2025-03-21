@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t mulshader[102];
+extern uint32_t mulshader[84];
 
 
 #ifdef __cplusplus

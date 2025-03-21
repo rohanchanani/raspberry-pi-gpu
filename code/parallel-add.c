@@ -49,8 +49,6 @@ uint32_t add_gpu_execute(volatile struct addGPU *gpu)
 		(uint32_t *)gpu->unif_ptr,
 		NUM_QPUS
 	);
-		(uint32_t)gpu->mail[1],
-		4);
 }
 
 void vec_add_release(volatile struct addGPU *gpu)
@@ -61,7 +59,7 @@ void vec_add_release(volatile struct addGPU *gpu)
 	qpu_enable(0);
 }
 
-void vec_add_init(volatile struct addGPU **gpu)
+void vec_add_init(volatile struct addGPU **gpu, int n)
 {
 	int ret = add_gpu_prepare(gpu);
 	if (ret < 0)
@@ -70,10 +68,14 @@ void vec_add_init(volatile struct addGPU **gpu)
 	volatile struct addGPU *ptr = *gpu;
 	memcpy((void *)ptr->code, addshader, sizeof ptr->code);
 
-	ptr->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct addGPU, code);
-	ptr->unif[1] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, A);
-	ptr->unif[2] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, B);
-	ptr->unif[3] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, C);
+	for (int i = 0; i < NUM_QPUS; i++) {
+		ptr->unif[i][0] = n / (16*NUM_QPUS);
+		ptr->unif[i][1] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, A) + i*n*4 / NUM_QPUS;
+		ptr->unif[i][2] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, B) + i*n*4 / NUM_QPUS;
+		ptr->unif[i][3] = ptr->mail[0] - offsetof(struct addGPU, code) + offsetof(struct addGPU, C) + i*n*4 / NUM_QPUS;
+		ptr->unif[i][4] = i;
+		ptr->unif_ptr[i] = ptr->mail[0] - offsetof(struct addGPU, code) + (uint32_t) &ptr->unif[i][0] - (uint32_t) ptr;
+	}
 }
 
 int vec_add_exec(volatile struct addGPU *gpu)
