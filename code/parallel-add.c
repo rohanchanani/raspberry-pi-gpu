@@ -42,17 +42,20 @@ int add_gpu_prepare(
 	return 0;
 }
 
-unsigned add_gpu_execute(volatile struct addGPU *gpu)
+uint32_t add_gpu_execute(volatile struct addGPU *gpu)
 {
 	return gpu_fft_base_exec_direct(
 		(uint32_t)gpu->mail[0],
+		(uint32_t *)gpu->unif_ptr,
+		NUM_QPUS
+	);
 		(uint32_t)gpu->mail[1],
 		4);
 }
 
 void vec_add_release(volatile struct addGPU *gpu)
 {
-	unsigned handle = gpu->handle;
+	uint32_t handle = gpu->handle;
 	mem_unlock(handle);
 	mem_free(handle);
 	qpu_enable(0);
@@ -96,6 +99,18 @@ void notmain(void)
 		gpu->B[i] = 64 + i;
 		gpu->C[i] = 0;
 	}
+
+	memcpy((void *)gpu->code, addshader, sizeof gpu->code);
+	for (int i=0; i<NUM_QPUS; i++) {
+	    gpu->unif[i][0] = N / (16*NUM_QPUS); // gpu->mail[0] - offsetof(struct GPU, code);
+	    gpu->unif[i][1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][4] = i;
+	    gpu->unif_ptr[i] = gpu->mail[0] - offsetof(struct GPU, code) + (uint32_t) &gpu->unif[i][0] - (uint32_t) gpu;
+	    printk("UNIFORM %d: NUM_ITERS: %d A: %x, B: %x, C: %x ADDRESS: %x\n", i, gpu->unif[i][0], gpu->unif[i][1], gpu->unif[i][2], gpu->unif[i][3], gpu->unif_ptr[i]);
+	}
+	printk("MAIL: %x\n", gpu->mail[1]);
 
 	printk("Running code on GPU...\n");
 	printk("Memory before running code: %d %d %d %d\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);

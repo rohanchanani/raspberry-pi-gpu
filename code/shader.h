@@ -3,10 +3,14 @@
 
 #include <inttypes.h>
 
-extern uint32_t shader[28];
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define RES_COUNT 45
-#define RES_COUNT2 45
-#define smi_start (shader + 0)
+extern uint32_t shader[102];
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

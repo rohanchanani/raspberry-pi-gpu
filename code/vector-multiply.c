@@ -53,7 +53,7 @@ unsigned mul_gpu_execute(volatile struct mulGPU *gpu)
 
 void vec_mul_release(volatile struct mulGPU *gpu)
 {
-	unsigned handle = gpu->handle;
+	uint32_t handle = gpu->handle;
 	mem_unlock(handle);
 	mem_free(handle);
 	qpu_enable(0);
@@ -131,5 +131,7 @@ void notmain(void)
 
 	vec_mul_release(gpu);
 }
+
+#endif
 
 #endif

@@ -45,6 +45,7 @@
 #define QPU_UNIFORM_ADDRESS (V3D_BASE + 0x434) // QPU Uniforms Address Register
 #define QPU_UNIFORM_LENGTH (V3D_BASE + 0x438)  // QPU Uniforms Register
 #define QPU_CONTROL_STATUS (V3D_BASE + 0x43c)  // QPU Uniforms Register
+#define QPU_ERROR_STATUS (V3D_BASE + 0x440)  // QPU Uniforms Register
 
 #define V3D_L2CACTL (V3D_BASE + 0x020)
 #define V3D_SLCACTL (V3D_BASE + 0x024)
@@ -185,30 +186,12 @@ uint32_t qpu_enable(uint32_t enable)
 	return p[5];
 }
 
-uint32_t execute_qpu(uint32_t num_qpus, uint32_t control, uint32_t noflush, uint32_t timeout)
-{
-	uint32_t p[10] __attribute__((aligned(16))) =
-		{
-			10 * sizeof(uint32_t), // size
-			0x00000000,			   // process request
-			0x30011,			   // (the tag id)
-			4 * sizeof(uint32_t),  // (size of the buffer)
-			4 * sizeof(uint32_t),  // (size of the data)
-			num_qpus,
-			control,
-			noflush,
-			timeout, // ms
-			0		 // end tag
-		};
-	assert(mbox_property(p));
-	return p[5];
-}
-
 unsigned gpu_fft_base_exec_direct(
 	uint32_t code,
-	uint32_t unifs,
+	uint32_t unifs[],
 	int num_qpus)
 {
+	//printk("RUNNING WITH %d\n QPUS", num_qpus);
 	PUT32(V3D_DBCFG, 0); // Disallow IRQ
 
 	PUT32(V3D_DBQITE, 0);  // Disable IRQ
@@ -221,9 +204,11 @@ unsigned gpu_fft_base_exec_direct(
 
 	for (unsigned q = 0; q < num_qpus; q++)
 	{ // Launch shader(s)
-		PUT32(V3D_SRQUA, (uint32_t)unifs); // Set the uniforms address
+
+		PUT32(V3D_SRQUA, (uint32_t)unifs[q]); // Set the uniforms address
 		PUT32(V3D_SRQPC, (uint32_t)code); // Set the program counter
 	}
+
 
 	// Busy wait polling
 	while (((GET32(V3D_SRQCS) >> 16) & 0xff) != num_qpus);
