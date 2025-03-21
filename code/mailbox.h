@@ -60,6 +60,6 @@ uint32_t mem_unlock(uint32_t handle);
  * qpu_enable: Enable (or disable) the QPU. Pass 1 to enable, 0 to disable. */
 uint32_t qpu_enable(uint32_t enable);
 
-unsigned gpu_fft_base_exec_direct(uint32_t code, uint32_t unifs, int num_qpus);
+unsigned gpu_fft_base_exec_direct(uint32_t code, uint32_t unifs[], int num_qpus);
 
 #endif /* BARE_MBOX_H */

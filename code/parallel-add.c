@@ -7,24 +7,25 @@
 
 #define GPU_MEM_FLG 0xC // cached=0xC; direct=0x4
 
-#define N 1024 // must be a multiple of 64
-
+#define N 65536
+#define NUM_QPUS 16
 
 struct GPU
 {
 	uint32_t A[N];
 	uint32_t B[N];
 	uint32_t C[N];
-	unsigned code[sizeof(addshader) / sizeof(uint32_t)];
-	unsigned unif[4];
-	unsigned mail[2];
-	unsigned handle;
+	uint32_t code[sizeof(addshader) / sizeof(uint32_t)];
+	uint32_t unif[NUM_QPUS][5];
+	uint32_t unif_ptr[NUM_QPUS];
+	uint32_t mail[2];
+	uint32_t handle;
 };
 
 int gpu_prepare(
 	volatile struct GPU **gpu)
 {
-	unsigned handle, vc;
+	uint32_t handle, vc;
 	volatile struct GPU *ptr;
 
 	if (qpu_enable(1))
@@ -55,18 +56,18 @@ int gpu_prepare(
 	return 0;
 }
 
-unsigned gpu_execute(volatile struct GPU *gpu)
+uint32_t gpu_execute(volatile struct GPU *gpu)
 {
 	return gpu_fft_base_exec_direct(
 		(uint32_t)gpu->mail[0],
-		(uint32_t)gpu->mail[1],
-		4
+		(uint32_t *)gpu->unif_ptr,
+		NUM_QPUS
 	);
 }
 
 void gpu_release(volatile struct GPU *gpu)
 {
-	unsigned handle = gpu->handle;
+	uint32_t handle = gpu->handle;
 	mem_unlock(handle);
 	mem_free(handle);
 	qpu_enable(0);
@@ -87,12 +88,16 @@ void notmain(void)
 	}
 
 	memcpy((void *)gpu->code, addshader, sizeof gpu->code);
-
-	gpu->unif[0] = N / 64; // gpu->mail[0] - offsetof(struct GPU, code);
-	gpu->unif[1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A);
-	gpu->unif[2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B);
-	gpu->unif[3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C);
-
+	for (int i=0; i<NUM_QPUS; i++) {
+	    gpu->unif[i][0] = N / (16*NUM_QPUS); // gpu->mail[0] - offsetof(struct GPU, code);
+	    gpu->unif[i][1] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, A) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][2] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, B) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][3] = gpu->mail[0] - offsetof(struct GPU, code) + offsetof(struct GPU, C) + i*N*4 / NUM_QPUS;
+	    gpu->unif[i][4] = i;
+	    gpu->unif_ptr[i] = gpu->mail[0] - offsetof(struct GPU, code) + (uint32_t) &gpu->unif[i][0] - (uint32_t) gpu;
+	    printk("UNIFORM %d: NUM_ITERS: %d A: %x, B: %x, C: %x ADDRESS: %x\n", i, gpu->unif[i][0], gpu->unif[i][1], gpu->unif[i][2], gpu->unif[i][3], gpu->unif_ptr[i]);
+	}
+	printk("MAIL: %x\n", gpu->mail[1]);
 	printk("Running code on GPU...\n");
 	printk("Memory before running code: %x %x %x %x\n", gpu->C[0], gpu->C[1], gpu->C[2], gpu->C[3]);
 
@@ -107,7 +112,7 @@ void notmain(void)
 	for (i = 0; i < N; i++) {
 	    if(gpu->C[i] != 32+64+i+i) {
 	        printk("Iteration %d: %d + %d = %d. Answer is INCORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
-	    } else if (i % 64 == 0) {
+	    } else if (i % (N/128)  == 0) {
 	        printk("Iteration %d: %d + %d = %d. Answer is CORRECT\n", i, gpu->A[i], gpu->B[i], gpu->C[i]);
 	    }
 	}

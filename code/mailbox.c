@@ -188,9 +188,10 @@ uint32_t qpu_enable(uint32_t enable)
 
 unsigned gpu_fft_base_exec_direct(
 	uint32_t code,
-	uint32_t unifs,
+	uint32_t unifs[],
 	int num_qpus)
 {
+	//printk("RUNNING WITH %d\n QPUS", num_qpus);
 	PUT32(V3D_DBCFG, 0); // Disallow IRQ
 
 	PUT32(V3D_DBQITE, 0);  // Disable IRQ
@@ -203,21 +204,12 @@ unsigned gpu_fft_base_exec_direct(
 
 	for (unsigned q = 0; q < num_qpus; q++)
 	{ // Launch shader(s)
-		uint32_t qpu_num_elements = *((uint32_t *)unifs + 4);
-		uint32_t qpu_offset = q * qpu_num_elements;
-		*((uint32_t *)unifs + 5) = qpu_offset;
-		
-		dmb();
-		
-		printk("q: %d, qpu_offset: %d\n", q, ((uint32_t *)unifs)[5]);
 
-		dev_barrier();
-
-		PUT32(V3D_SRQUA, (uint32_t)unifs); // Set the uniforms address
+		PUT32(V3D_SRQUA, (uint32_t)unifs[q]); // Set the uniforms address
 		PUT32(V3D_SRQPC, (uint32_t)code); // Set the program counter
 	}
 
-	printk("# of programs launched: %d\n", GET32(V3D_SRQCS) >> 8);
+	//printk("# of programs launched: %d\n", GET32(V3D_SRQCS) >> 8);
 
 
 	// Busy wait polling
