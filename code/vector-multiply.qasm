@@ -28,26 +28,26 @@ mov r3, 256
     mov vw_setup, vpm_setup(4, 1, h32(8))
     mov ra10, 4
 
-:inner_loop
+    :inner_loop
 
-    mov r1, vpm
-    mov -, vw_wait
+        mov r1, vpm
+        mov -, vw_wait
 
-    mov r2, vpm   
-    mov -, vw_wait
+        mov r2, vpm   
+        mov -, vw_wait
 
 
-    mul24 r1, r1, r2
+        mul24 r1, r1, r2
 
-    mov vpm, r1
-    mov -, vw_wait
+        mov vpm, r1
+        mov -, vw_wait
 
-    sub.setf ra10, ra10, 1
-    brr.anynz -, :inner_loop
+        sub.setf ra10, ra10, 1
+        brr.anynz -, :inner_loop
 
-    nop
-    nop
-    nop
+        nop
+        nop
+        nop
 
     mov vw_setup, vdw_setup_0(4, 16, dma_h32(8,0))
     mov vw_addr, ra3

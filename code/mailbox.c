@@ -1,37 +1,7 @@
-/*
- * bare_mbox.c - Bare-metal mailbox interface for Raspberry Pi GPU memory
- *
- * This implementation provides functions equivalent to those in the
- * provided mailbox.c file but does not rely on any operating system
- * services. Instead, it accesses the mailbox registers directly.
- *
- * Supported functions:
- *   - mailbox_write() / mailbox_read(): Basic mailbox I/O.
- *   - mailbox_call(): Sends a property message and waits for the response.
- *   - mem_alloc(): Allocate GPU memory.
- *   - mem_lock(): Lock allocated memory and return its bus address.
- *   - mem_unlock(): Unlock memory.
- *   - mem_free(): Release GPU memory.
- *   - qpu_enable(): Enable (or disable) the QPU.
- *   - execute_qpu(): Launch QPU code.
- *
- * References:
- *   - Raspberry Pi GPU firmware documentation (VideoCore IV property interface)
- *   - Bare-metal mailbox tutorials (e.g., Baking Pi)
- *
- * Adjust MAILBOX_BASE below according to your Raspberry Pi:
- *   Pi 1:  0x2000B880
- *   Pi 2/3: 0x3F00B880
- *   Pi 4:  0xFE00B880 (or similar)
- */
-
 #include <stdint.h>
 #include "rpi.h"
 
-//
-// Mailbox register definitions (volatile pointers)
-//
-#define MAILBOX_BASE 0x2000B880 // Change this value for your model
+#define MAILBOX_BASE 0x2000B880
 #define MAILBOX_READ (*(volatile uint32_t *)(MAILBOX_BASE + 0x0))
 #define MAILBOX_STATUS (*(volatile uint32_t *)(MAILBOX_BASE + 0x18))
 #define MAILBOX_WRITE (*(volatile uint32_t *)(MAILBOX_BASE + 0x20))
@@ -40,13 +10,7 @@
 #define MAILBOX_EMPTY 0x40000000
 
 #define V3D_BASE 0x20C00000
-#define V3D_SRQSC (V3D_BASE + 0x418)		   // QPU Scheduler Control Register
-#define QPU_PROGRAM_COUNTER (V3D_BASE + 0x430) // Program Counter Register
-#define QPU_UNIFORM_ADDRESS (V3D_BASE + 0x434) // QPU Uniforms Address Register
-#define QPU_UNIFORM_LENGTH (V3D_BASE + 0x438)  // QPU Uniforms Register
-#define QPU_CONTROL_STATUS (V3D_BASE + 0x43c)  // QPU Uniforms Register
-#define QPU_ERROR_STATUS (V3D_BASE + 0x440)  // QPU Uniforms Register
-
+#define V3D_SRQSC (V3D_BASE + 0x418)
 #define V3D_L2CACTL (V3D_BASE + 0x020)
 #define V3D_SLCACTL (V3D_BASE + 0x024)
 #define V3D_SRQPC (V3D_BASE + 0x0430)
