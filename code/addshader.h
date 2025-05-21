@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t addshader[106];
+extern uint32_t addshader[102];
 
 
 #ifdef __cplusplus

@@ -1,6 +1,6 @@
 LIBS += $(CS140E_2025_PATH)/lib/libgcc.a $(CS140E_2025_PATH)/libpi/libpi.a
 
-PROGS := $(wildcard tests/4-*.c)
+PROGS := $(wildcard tests/1-*.c)
 
 # PROGS := tests/3-test-fire.c
 
