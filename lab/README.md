@@ -23,13 +23,13 @@ There's a lot of information here, but pretty much everything you need to know i
 - VPM and VCD p. 53-56 
 Describes the VPM, which is the intermediate memory buffer in between physical memory and QPU registers. Memory flow is GPU registers <-> VPM <-> physical memory where the VPM/physical memory flow is done by DMA. 
 - VPM/VCD Registers p. 57-59 
-Describes how to configure the registers to set up loads and stores in the aforementioned memory flow. VC4ASM has very helpful macros for this, but sometimes you need more fine-grained control. 
+Describes how to configure the registers to set up loads and stores in the aforementioned memory flow. vc4asm has very helpful macros for this, but sometimes you need more fine-grained control. 
 - V3D Registers p. 82-84 
 The only ones we really care about are the ones written to in the QPU_EXECUTE_DIRECT function in our mailbox, and we still aren't 100% sure on why we have to write to these specifically. We couldn't get the mailbox execute QPU function to work, so we did it through the registers directly. 
 - QPU Scheduler registers p. 89-91 
 The important ones are program address, uniforms address, uniforms length, and user program request control/status. All you provide is an address to start executing code and an array of uniforms, and the scheduler runs the program and updates status. 
 
-<b>[VC4ASM Assembler for the QPU](https://maazl.de/project/vc4asm/doc/index.html) </b> 
+<b>[vc4asm Assembler for the QPU](https://maazl.de/project/vc4asm/doc/index.html) </b> 
 
 This is what we'll use to actually write QPU kernels that we can launch ourselves. The assemb
 
@@ -39,7 +39,7 @@ This is what we'll use to actually write QPU kernels that we can launch ourselve
 - Accumulators are registers `r0`...`r5`. It's generally a good idea to do arithmetic operations with these (adds, muls, fmuls, etc.). Note that r4 is read-only, so probably shouldn't be used. 
 - Memory registers are `ra0`...`ra31` and `rb0`...`rb31`. From the Broadcom documentation (page 17-18):  
     <b>The QPU pipeline is constructed such that register files have an entire pipeline cycle to perform a read operation. As the QPU pipeline length from register file read to write-back is greater than four cycles, one cannot write data to a physical QPU register file in one instruction and then read that same data for use in the next instruction (no forwarding paths are provided). QPU code is expected to make heavy use of the six accumulator registers, which do not suffer the restriction that data written by an instruction cannot be read in the next instruction.</b>
-In general, avoid using two registers from the same file (e.g. `ra1` and `ra2` or `rb7` and `rb25`) in the same instruction or in back-to-back instructions. Sometimes it'll will work without out a problem, sometimes the assembler will tell you you've written illegal code, and in the worst case it'll fail silently. You'll need to store data in the memory registers, so to be safe, always do a `mov r1, ra1` before operating on that data (assuming the data's in `ra1` and `r1` is an available accum register), and then do `mov r1, ra1` afterward to free up the accumulator for other use.
+In general, avoid using two registers from the same file (e.g. `ra1` and `ra2` or `rb7` and `rb25`) in the same instruction or in back-to-back instructions. Sometimes it'll will work without out a problem, sometimes the assembler will tell you you've written illegal code, and in the worst case it'll fail silently. You'll need to store data in the memory registers, so to be safe, always do a `mov r1, ra1` before operating on that data (assuming the data's in `ra1` and `r1` is an available accum register), and then do `mov ra1, r1` afterward to free up the accumulator for other use.
 - There are several special purpose registers. 
   - The `unif` register holds the queue of uniforms, which you will provide when you launch the kernel. The workflow is straightforward - if you have  a 4-element unif array, say [1, 0x\<some address>, 12, 56], then you can do 
 `mov ra1, unif; mov ra2, unif; mov ra3, unif; mov ra4, unif;` and `ra1` will be a 16-wide "uniform" vector with each value holding `4`,`ra2` will be a 16-wide "uniform" vector with each value holding `0x\<some address>`, etc. 
@@ -72,12 +72,12 @@ struct GPU
         ///Other program-buffers as needed
 	uint32_t code[CODE_SIZE];
 	uint32_t unif[NUM_QPUS][NUM_UNIFS];
-	uint32_t unif_ptr[NUM_QPUs];
+	uint32_t unif_ptr[NUM_QPUS];
 	uint32_t mail[2];
 	uint32_t handle;
 };
 ```
-The top of the struct holds any buffers your program needs. For example, a matrix multiplication might have 3 2D arrays, for the two input matrices and the single output matrix. Next, is the `code` array. Although the QPU uses 64-bit/8-byte instructions, the VC4ASM assembler we use outputs these instructions as an array of 32-bit values, so we store them as such. Next, is the 2D `unif` array. Uniforms are parameters your QPU kernel can read and use. For example, you almost always need to pass the GPU address and size of the input/output array(s) as uniforms so that your QPU kernel knows where and how much to read from/write to. When you schedule your program to run on multiple QPUs, each QPU gets its own uniforms array, so you can (and often should) vary your uniforms by QPU when running on multiple QPUs. The `unif_ptr` array holds the GPU base address of the `unif` array for each QPU - this is what will ultimately get passed to the scheduler to launch each QPU. The first word of the `mail` array is the GPU address of the `code` array, and the second word is the GPU address of the base of the 2D `unif` array. Finally, the handle is what's returned by the mailbox `mem_alloc` call to allocate memory on the GPU - more details later. Below is the struct GPU we use for the Deadbeef program:  
+The top of the struct holds any buffers your program needs. For example, a matrix multiplication might have 3 2D arrays, for the two input matrices and the single output matrix. Next, is the `code` array. Although the QPU uses 64-bit/8-byte instructions, the vc4asm assembler we use outputs these instructions as an array of 32-bit values, so we store them as such. Next, is the 2D `unif` array. Uniforms are parameters your QPU kernel can read and use. For example, you almost always need to pass the GPU address and size of the input/output array(s) as uniforms so that your QPU kernel knows where and how much to read from/write to. When you schedule your program to run on multiple QPUs, each QPU gets its own uniforms array, so you can (and often should) vary your uniforms by QPU when running on multiple QPUs. The `unif_ptr` array holds the GPU base address of the `unif` array for each QPU - this is what will ultimately get passed to the scheduler to launch each QPU. The first word of the `mail` array is the GPU address of the `code` array, and the second word is the GPU address of the base of the 2D `unif` array. Finally, the handle is what's returned by the mailbox `mem_alloc` call to allocate memory on the GPU - more details later. Below is the struct GPU we use for the Deadbeef program:  
 ```c
 struct GPU
 {
@@ -106,7 +106,7 @@ uint32_t handle = mem_alloc(sizeof(struct GPU), 4096, GPU_MEM_FLG);
 uint32_t vc = mem_lock(handle);
 
 //Shift the pointer to a CPU address we can write to
-ptr = (volatile struct GPU *)(vc - GPU_BASE); //GPU_BASE = 0x4000000
+ptr = (volatile struct GPU *)(vc - GPU_BASE); //GPU_BASE = 0x40000000
 
 //And voila! Now we can start filling in our struct GPU and rest easy knowing that the GPU will see it.
 ptr->... = ...
@@ -117,7 +117,7 @@ There's technically a mailbox call to execute code on the GPU, but we couldn't f
 ```
 // Launch shader(s)
 for (unsigned q = 0; q < num_qpus; q++) {
-  PUT32(V3D_SRQUA, (uint32_t)unifs[q]); // Set the uniforms address
+  PUT32(V3D_SRQUA, (uint32_t)unif_ptr[q]); // Set the uniforms address
   PUT32(V3D_SRQPC, (uint32_t)code); // Set the program counter
 }
 // Busy wait polling
@@ -135,7 +135,7 @@ The key conceptual hump for writing QPU kernels is understanding how memory move
 
 ![VPM](./images/vpm.png)
 
-As mentioned above, the VPM has almost exactly 4KB of memory, which is laid out as a 16-wide 64-high 2D array of 4-byte words (16 * 64 * 4 = 4096 bytes). The most natural way to read/write from the VPM is 16-wide horizontal vectors, but the QPUs can use a massively broad and expressive range of accessing patterns on the VPM, all of which are outlined in pages 53-56 of the docs. In order to use the VPM, you have to configure how you're going to be using it. This is done using the `vr_setup` and `vw_setup` registers (as defined by vc4asm) For DMA reads/writes (VPM <=> Physical memory), you have to use the `vdr_setup_0` and `vdw_setup_0` macros (also defined by vc4asm) to describe what you'll be doing, and for loads/stores (VPM <=> Registers), you have to use the `vpm_setup` macro to describe what you'll be doing. These macros are extremely helpful, and you can also see the 32-bit values they correspond to by looking at the 'QPU Registers for VPM and VCD Functions' starting on page 57 on the docs - sometimes it is necessary to do direct arithmetic with these values (e.g. vr_setup = vpm_setup(some args) + some val), when some val could be a variable row in the VPM. 
+As mentioned above, the VPM has almost exactly 4KB of memory, which is laid out as a 16-wide 64-high 2D array of 4-byte words (16 * 64 * 4 = 4096 bytes). The most natural way to read/write from the VPM is 16-wide horizontal vectors, but the QPUs can use a massively broad and expressive range of accessing patterns on the VPM, all of which are outlined in pages 53-56 of the docs. In order to use the VPM, you have to configure how you're going to be using it. This is done using the `vr_setup` and `vw_setup` registers (as defined by vc4asm). For DMA reads/writes (VPM <=> Physical memory), you have to use the `vdr_setup_0` and `vdw_setup_0` macros (also defined by vc4asm) to describe what you'll be doing, and for loads/stores (VPM <=> Registers), you have to use the `vpm_setup` macro to describe what you'll be doing. These macros are extremely helpful, and you can also see the 32-bit values they correspond to by looking at the 'QPU Registers for VPM and VCD Functions' starting on page 57 on the docs - sometimes it is necessary to do direct arithmetic with these values (e.g. vr_setup = vpm_setup(some args) + some val), when some val could be a variable row in the VPM. 
 
 #### How to actually use these
 The [vc4asm docs](https://maazl.de/project/vc4asm/doc/vc4.qinc.html#VPM) on these macros is your absolute best friend here. The deadbeef example is an illustrative example for how to use them, but note that it only writes, i.e goes registers=>VPM=>Physical Memory (sometimes your kernel may need to read an input buffer as well). To write this data, it starts by configuring a VPM store in the `vw_setup` register. The program is going to store 4 16-wide horizontal vectors 1 at a time, and it would like to write the first starting at (y,x) coord (0,0), the second starting at (1,0), the third at (2,0), and the 4th and (3,0). To do so, it does: `mov vw_setup, vpm_setup(4, 1, h32(0))`, which corresponds to write 4 rows, increment by 1 after each write, and write horizontal 32-bit vectors start at y value 0. It then carries out the writes, by treating the `vpm` register like any other register (`ldi vpm, 0xdeadbeef`) just writes `0xdeadbeef` to the `vpm`. After each write, the program executes a `mov -, vw_wait` to ensure the write completes, then writes out the following 3 values. Recall that each of these writes is a 16-wide vector. After the VPM writes are complete, the program then prepares a DMA write using the `vw_setup` register once again, only this time using the `vdw_setup_0` macro. Here, the macro invocation `vdw_setup_0(4, 16, dma_h32(0,0))` corresponds to 'write 4 rows of the VPM, each of them 16 wide, horizontal 32-bit starting at VPM coord 0,0'. Because we're writing to physical memory, we also have to specify the `vw_addr` register, which in this case is just the uniform we provided when we launched the kernel. Finally, we do a `mov -, vw_wait` to kick of the DMA write.  And that's it! A complete hello-world program on the GPU, and we're only ... about 2,700 words into the README. 
@@ -145,7 +145,7 @@ Running `bash.sh` will reassemble the qasm and then run make. You can also just 
 
 ## Part 1: Parallel Add
 
-The first program you'll implement is a SIMD vector add on a single QPU. `parallel-add.c` and `parallel-add.h` have a lot of the boiler-plate for executing QPU code we described above - you have the input A and B arrays and the output C arrays in the `struct GPU` and their addresses in the uniform array - you can decide any other uniforms you need. The kernel is in `parallel-add.qasm` - we've added a skeleton if you'd like, but this would also be great to Daniel-mode directly from the deadbeef example and VC4ASM docs. 
+The first program you'll implement is a SIMD vector add on a single QPU. `parallel-add.c` and `parallel-add.h` have a lot of the boiler-plate for executing QPU code we described above - you have the input A and B arrays and the output C arrays in the `struct GPU` and their addresses in the uniform array - you can decide any other uniforms you need. The kernel is in `parallel-add.qasm` - we've added a skeleton if you'd like, but this would also be great to Daniel-mode directly from the deadbeef example and vc4asm docs. 
 
 Checkoff: Your kernel should calculate the same values as the CPU implementation, with a meaningful speedup (we had a 3-4x speedup on 1 QPU, better should be possible).  
 
@@ -157,9 +157,9 @@ Checkoff: Your kernel should calculate the same values as the CPU implementation
 
 The final program we'll implement is a Mandelbrot kernel. Calculating which points are in the Mandelbrot set is very computationally intensive, but each point is calculated completely independent of all others, so it's an excellent candidate for GPU acceleration. The [Wikipedia](https://en.wikipedia.org/wiki/Mandelbrot_set) is a helpful reference if you're unfamiliar with how Mandelbrot is calculated. For this kernel, we'll be using multiple QPUs, and the additional necessary boilerplate is included in the starter code. The parallelization scheme used by the starter-code is described below, but you're absolutely free to design your own and adapt the code as such.
 
-Parallelization scheme: We paralellize the columns using the 16-wide SIMD vector and we parallelize the rows by the number of QPUs. Equivalently, index i in the SIMD vector is responsible for computing every column n where n % 16 = i, and QPU j is responsible for computing every row m where m % NUM_QPUs = j. Note that this requires that the resolution be divisible by 16 and NUM_QPUs - it would be better to handle cases that don't divide nicely. In C-like code, this looks like:
+Parallelization scheme: We parallelize the columns using the 16-wide SIMD vector and we parallelize the rows by the number of QPUs. Equivalently, index i in the SIMD vector is responsible for computing every column n where n % 16 = i, and QPU j is responsible for computing every row m where m % NUM_QPUS = j. Note that this requires that the resolution be divisible by 16 and NUM_QPUS - it would be better to handle cases that don't divide nicely. In C-like code, this looks like:
 ```
-for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPU) {
+for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPUS) {
   for (int j = MY_VECTOR_INDEX; j < WIDTH; j += 16) {
     compute(Output[i][j]);
   }
@@ -167,8 +167,8 @@ for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPU) {
 ``` 
 Note that with SIMD, the inner loop is more accurately described as:
 ```
-for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPU) {
-  for (int j_base = 0; j < WIDTH; j += 16) {
+for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPUS) {
+  for (int j_base = 0; j_base < WIDTH; j_base += 16) {
     compute(Output[i][j_base...j_base+15]);
   }
 }
@@ -184,7 +184,7 @@ When you do bash run.sh for with 2-mandelbrot.c in your progs, you should get an
 ## Useful Links
 
 - [VideoCore IV 3D Architecture Reference Guide](./docs/VideoCore%20IV%203D%20Architecture%20Reference%20Guide.pdf)
-- [VC4ASM](https://maazl.de/project/vc4asm/doc/index.html)
+- [vc4asm](https://maazl.de/project/vc4asm/doc/index.html)
 - [Pete Warden's Blog](https://petewarden.com/2014/08/07/how-to-optimize-raspberry-pi-code-using-its-gpu/) and [code](https://github.com/jetpacapp/pi-gemm)
 - [Macoy Madson's Blog](https://macoy.me/blog/programming/PiGPU)
 - [gpu-deadbeef](https://github.com/0xfaded/gpu-deadbeef)
