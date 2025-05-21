@@ -1,5 +1,5 @@
-#ifndef addshader_H
-#define addshader_H
+#ifndef mandelbrotshader_H
+#define mandelbrotshader_H
 
 #include <inttypes.h>
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t addshader[70];
+extern uint32_t mandelbrotshader[196];
 
 
 #ifdef __cplusplus

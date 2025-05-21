@@ -1,5 +1,6 @@
 #include "parallel-add.h"
 
+/* SIMPLE TEST TO COMPARE YOUR KERNEL WITH CPU OUTPUT */
 void test_add(void)
 {
     int i, j;
@@ -55,7 +56,7 @@ void test_add(void)
 
 void notmain(void)
 {
-    printk("Testing addition and multiplication on GPU...\n");
+    printk("Testing addition on GPU...\n");
     
     test_add();
 

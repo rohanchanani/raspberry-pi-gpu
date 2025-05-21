@@ -1,5 +1,5 @@
-#ifndef addshader_H
-#define addshader_H
+#ifndef deadbeef_H
+#define deadbeef_H
 
 #include <inttypes.h>
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-extern uint32_t addshader[70];
+extern uint32_t deadbeef[32];
 
 
 #ifdef __cplusplus

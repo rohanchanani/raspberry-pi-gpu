@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.rg": "terra",
+        "addshader.h": "c"
+    }
+}

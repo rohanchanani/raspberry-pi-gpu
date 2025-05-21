@@ -79,11 +79,12 @@ void vec_add_init(volatile struct addGPU **gpu, int n)
 	volatile struct addGPU *ptr = *gpu;
 	memcpy((void *)ptr->code, addshader, sizeof ptr->code);
 
-	ptr->unif[0][0] = GPU_BASE + (uint32_t)&ptr->A;
-	ptr->unif[0][1] = GPU_BASE + (uint32_t)&ptr->B;
-	ptr->unif[0][2] = GPU_BASE + (uint32_t)&ptr->C;
+	ptr->unif[0][0] = N / 16;
+	ptr->unif[0][1] = GPU_BASE + (uint32_t)&ptr->A;
+	ptr->unif[0][2] = GPU_BASE + (uint32_t)&ptr->B;
+	ptr->unif[0][3] = GPU_BASE + (uint32_t)&ptr->C;
 
-	todo("ADD ANY OTHER UNIFORMS YOU NEED FOR THE PARALLEL-ADD KERNEL (AND CHANGE NUM_UNIFS CONSTANT)");
+	//todo("ADD ANY OTHER UNIFORMS YOU NEED FOR THE PARALLEL-ADD KERNEL (AND CHANGE NUM_UNIFS CONSTANT)");
 
 	ptr->unif_ptr[0] = GPU_BASE + (uint32_t)&ptr->unif;
 }
