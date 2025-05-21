@@ -1,18 +1,9 @@
 LIBS += $(CS240LX_2025_PATH)/lib/libgcc.a $(CS240LX_2025_PATH)/libpi/libpi.a
 
-COMMON_SRC := mailbox.c
+COMMON_SRC := mailbox.c deadbeef.c
 
-PROGS := 1-test-add.c
+PROGS := 0-deadbeef.c
 
-
-
-#SWAP THESE
-#COMMON_SRC += addshader.c
-STAFF_OBJS += staffaddshader.o
-
-#AND THESE
-#COMMON_SRC += parallel-add.c
-STAFF_OBJS += staff-parallel-add.o
 
 STAFF_OBJS += $(CS240LX_2025_PATH)/libpi/staff-objs/staff-hw-spi.o
 STAFF_OBJS += $(CS240LX_2025_PATH)/libpi/staff-objs/kmalloc.o

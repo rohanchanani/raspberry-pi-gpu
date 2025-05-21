@@ -175,6 +175,11 @@ for (int i = MY_QPU_NUM; i < HEIGHT; i += NUM_QPU) {
 ```
 because each 16-wide vector is computed in lockstep fashion.
 
+For this one, all the code is in mandelbrot.qasm - fill in the TODOs to complete the kernel. 
+
+Checkoff:
+When you do bash run.sh for with 2-mandelbrot.c in your progs, you should get an output.pgm file on your pi SD card. When it opens on your computer, it should be the Mandelbrot fractal at the resolution you defined (probably don't go bigger than 1024 for the resolution),
+
 
 ## Useful Links
 
