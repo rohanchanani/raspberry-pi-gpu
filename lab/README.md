@@ -31,7 +31,7 @@ The important ones are program address, uniforms address, uniforms length, and u
 
 <b>[vc4asm Assembler for the QPU](https://maazl.de/project/vc4asm/doc/index.html) </b> 
 
-This is what we'll use to actually write QPU kernels that we can launch ourselves. The assemb
+This is what we'll use to actually write QPU kernels that we can launch ourselves. Follow the build instructions carefully to install it, and make sure all your qasm files have the required include. 
 
 [Build Instructions](https://maazl.de/project/vc4asm/doc/index.html#build): Make sure you have `.include "../share/vc4inc/vc4.qinc"` at the top of your qasm files. 
 [Assembler](https://maazl.de/project/vc4asm/doc/index.html#vc4asm): To assemble a kernel titled `kernel.qasm`, run `vc4asm -c kernel.c -h kernel.h kernel.qasm`, add `#include "kernel.h"` to the file where you launch the kernel,  and add `kernel.c` to your `COMMON_SRC` in the Makefile. 
@@ -77,7 +77,14 @@ struct GPU
 	uint32_t handle;
 };
 ```
-The top of the struct holds any buffers your program needs. For example, a matrix multiplication might have 3 2D arrays, for the two input matrices and the single output matrix. Next, is the `code` array. Although the QPU uses 64-bit/8-byte instructions, the vc4asm assembler we use outputs these instructions as an array of 32-bit values, so we store them as such. Next, is the 2D `unif` array. Uniforms are parameters your QPU kernel can read and use. For example, you almost always need to pass the GPU address and size of the input/output array(s) as uniforms so that your QPU kernel knows where and how much to read from/write to. When you schedule your program to run on multiple QPUs, each QPU gets its own uniforms array, so you can (and often should) vary your uniforms by QPU when running on multiple QPUs. The `unif_ptr` array holds the GPU base address of the `unif` array for each QPU - this is what will ultimately get passed to the scheduler to launch each QPU. The first word of the `mail` array is the GPU address of the `code` array, and the second word is the GPU address of the base of the 2D `unif` array. Finally, the handle is what's returned by the mailbox `mem_alloc` call to allocate memory on the GPU - more details later. Below is the struct GPU we use for the Deadbeef program:  
+- Program Buffers: The top of the struct holds any buffers your program needs. For example, a matrix multiplication might have 3 2D arrays, for the two input matrices and the single output matrix. 
+- The `code` array: Although the QPU uses 64-bit/8-byte instructions, the vc4asm assembler we use outputs these instructions as an array of 32-bit values, so we store them as such. 
+- The 2D `unif` array: Uniforms are parameters your QPU kernel can read and use. For example, you almost always need to pass the GPU address and size of the input/output array(s) as uniforms so that your QPU kernel knows where and how much to read from/write to. When you schedule your program to run on multiple QPUs, each QPU gets its own uniforms array, so you can (and often should) vary your uniforms by QPU when running on multiple QPUs. 
+- The `unif_ptr` array: This holds the GPU base address(es) of the `unif` array for each QPU - this is what will ultimately get passed to the scheduler to launch each QPU.
+- The `mail` array: The first word of the `mail` array is the GPU address of the `code` array, and the second word is the GPU address of the base of the 2D `unif` array. 
+- `handle`: The handle is what's returned by the mailbox `mem_alloc` call to allocate memory on the GPU.
+
+Below is the struct GPU we use for the Deadbeef program:  
 ```c
 struct GPU
 {
@@ -89,9 +96,7 @@ struct GPU
 	uint32_t handle;
 };
 ```
-The goal of the program is to fill the output array from the GPU and read it from the CPU. Our code will be in a C-array of 32-bit values called deadbeef. Finally, we will only run on 1 QPU, and our only uniform will be the GPU address of the output array. 
-
-### Mailbox and GPU Execution
+### Mailbox 
 
 So now that we have this struct GPU defined, how do we initialize it? What do we do with it? The answer comes from our old friend all the way back in lab 1, the mailbox. The key purpose of the `struct GPU` is allowing us to have shared state between the CPU and GPU. To make this happen, we need to allocate memory on the GPU and be able to write to that memory from the CPU. We do so using the following sequence of mailbox calls (the deadbeef code has some error-checking but is functionally the same):
 
@@ -111,7 +116,14 @@ ptr = (volatile struct GPU *)(vc - GPU_BASE); //GPU_BASE = 0x40000000
 //And voila! Now we can start filling in our struct GPU and rest easy knowing that the GPU will see it.
 ptr->... = ...
 ```
-Once we have allocated our `struct GPU` as shown above, we can start filling it in. The input/output buffers should be filled specific to your program - with deadbeef, we memset the output to 0xffff.... to confirm we've actually changed something. You `memcpy` the assembled code array from vc4asm into the `code` array. The `unif` array is also initialized specific to your program - for deadbeef, our only uniform is the GPU address of the output array, which we can get by adding the GPU base to the address of ptr->output. Similarly, our single entry in `unif_ptr` is defined as `GPU_BASE + (uint32_t)&gpu->unif[0]`, mail[0] is `GPU_BASE + (uint32_t)&gpu->code`, and mail[1] is `GPU_BASE + (uint32_t)&gpu->unif`. The `handle` is the same we got from `mem_alloc`.
+Once we have allocated our `struct GPU` as shown above, we can start filling it in. 
+- The input/output buffers should be filled specific to your program - with deadbeef, we initially memset the output to 0xffff.... to confirm we've actually changed something when we run the code. 
+- We `memcpy` the assembled code array from `vc4asm` into the `code` array. - The `unif` array is also initialized specific to your program - for deadbeef, our only uniform is the GPU address of the output array, which we can get by adding the GPU base to the address of ptr->output. 
+- Similarly, our single entry in `unif_ptr` is defined as `GPU_BASE + (uint32_t)&gpu->unif[0]`
+- mail[0] is `GPU_BASE + (uint32_t)&gpu->code`, and mail[1] is `GPU_BASE + (uint32_t)&gpu->unif`. 
+- The `handle` is the same we got from `mem_alloc`.
+
+### GPU Execution
 
 There's technically a mailbox call to execute code on the GPU, but we couldn't figure out how to get that to work (please let us know if you do!). Instead, to get the code to run we had to directly write to the GPU control registers as you would any of other hardware peripherals we've worked on. After clearing the V3D caches/interrupts, we execute as follows:
 ```
@@ -126,7 +138,7 @@ while (((GET32(V3D_SRQCS) >> 16) & 0xff) != num_qpus);
 For each QPU, we take write the GPU base address of its corresponding 1D uniform array to the V3D_SRQUA register and the GPU base address of our code to the V3D_SRQPC register (technically you can have different code for each QPU the way we have different uniforms, but doesn't really make much sense). Then, we poll the status register for the number of qpus done executing until it matches the number we launched. All of this is outlined in the docs (page 90-92 of the [manual](./docs/VideoCore%20IV%203D%20Architecture%20Reference%20Guide.pdf)).
 
 ### Writing QPU Kernels
-This is where things get fun. In order to run code on the GPU, you have to actually have code to run, which means writing bare-metal GPU kernels; you can tell all the CS149 posers that CUDA is for suckers, real performance engineers write their kernels in machine code.
+This is where things get fun. In order to run code on the GPU, you have to actually have code to run, which means writing bare-metal GPU kernels; unlike all the CS149 posers, real performance engineers write their kernels in machine code.
 
 The key conceptual hump for writing QPU kernels is understanding how memory moves around. As stated above, the flow of data is registers <=> VPM <=> Physical memory, and the most important part to understand is the middleman - the VPM.
 
@@ -135,19 +147,25 @@ The key conceptual hump for writing QPU kernels is understanding how memory move
 
 ![VPM](./images/vpm.png)
 
-As mentioned above, the VPM has almost exactly 4KB of memory, which is laid out as a 16-wide 64-high 2D array of 4-byte words (16 * 64 * 4 = 4096 bytes). The most natural way to read/write from the VPM is 16-wide horizontal vectors, but the QPUs can use a massively broad and expressive range of accessing patterns on the VPM, all of which are outlined in pages 53-56 of the docs. In order to use the VPM, you have to configure how you're going to be using it. This is done using the `vr_setup` and `vw_setup` registers (as defined by vc4asm). For DMA reads/writes (VPM <=> Physical memory), you have to use the `vdr_setup_0` and `vdw_setup_0` macros (also defined by vc4asm) to describe what you'll be doing, and for loads/stores (VPM <=> Registers), you have to use the `vpm_setup` macro to describe what you'll be doing. These macros are extremely helpful, and you can also see the 32-bit values they correspond to by looking at the 'QPU Registers for VPM and VCD Functions' starting on page 57 on the docs - sometimes it is necessary to do direct arithmetic with these values (e.g. vr_setup = vpm_setup(some args) + some val), when some val could be a variable row in the VPM. 
+As mentioned above, the VPM has almost exactly 4KB of memory, which is laid out as a 16-wide 64-high 2D array of 4-byte words (16 * 64 * 4 = 4096 bytes). The most natural way to read/write from the VPM is 16-wide horizontal vectors, but the QPUs can use a massively broad and expressive range of accessing patterns on the VPM, all of which are outlined in pages 53-56 of the docs. 
+
+In order to use the VPM, you have to configure how you're going to be using it. This is done using the `vr_setup` and `vw_setup` registers (as defined by vc4asm). For DMA reads/writes (VPM <=> Physical memory), you have to use the `vdr_setup_0` and `vdw_setup_0` macros (also defined by vc4asm) to describe what you'll be doing, and for loads/stores (VPM <=> Registers), you have to use the `vpm_setup` macro to describe what you'll be doing. These macros are extremely helpful, and you can also see the 32-bit values they correspond to by looking at the 'QPU Registers for VPM and VCD Functions' starting on page 57 on the docs - sometimes it is necessary to do direct arithmetic with these values (e.g. `vr_setup = vpm_setup(some args) + some val)`, when `some val` could be a variable row in the VPM. 
 
 #### How to actually use these
-The [vc4asm docs](https://maazl.de/project/vc4asm/doc/vc4.qinc.html#VPM) on these macros is your absolute best friend here. The deadbeef example is an illustrative example for how to use them, but note that it only writes, i.e goes registers=>VPM=>Physical Memory (sometimes your kernel may need to read an input buffer as well). To write this data, it starts by configuring a VPM store in the `vw_setup` register. The program is going to store 4 16-wide horizontal vectors 1 at a time, and it would like to write the first starting at (y,x) coord (0,0), the second starting at (1,0), the third at (2,0), and the 4th and (3,0). To do so, it does: `mov vw_setup, vpm_setup(4, 1, h32(0))`, which corresponds to write 4 rows, increment by 1 after each write, and write horizontal 32-bit vectors start at y value 0. It then carries out the writes, by treating the `vpm` register like any other register (`ldi vpm, 0xdeadbeef`) just writes `0xdeadbeef` to the `vpm`. After each write, the program executes a `mov -, vw_wait` to ensure the write completes, then writes out the following 3 values. Recall that each of these writes is a 16-wide vector. After the VPM writes are complete, the program then prepares a DMA write using the `vw_setup` register once again, only this time using the `vdw_setup_0` macro. Here, the macro invocation `vdw_setup_0(4, 16, dma_h32(0,0))` corresponds to 'write 4 rows of the VPM, each of them 16 wide, horizontal 32-bit starting at VPM coord 0,0'. Because we're writing to physical memory, we also have to specify the `vw_addr` register, which in this case is just the uniform we provided when we launched the kernel. Finally, we do a `mov -, vw_wait` to kick of the DMA write.  And that's it! A complete hello-world program on the GPU, and we're only ... about 2,700 words into the README. 
+The [vc4asm docs](https://maazl.de/project/vc4asm/doc/vc4.qinc.html#VPM) on these macros is your absolute best friend here. The deadbeef example is an illustrative example for how to use them, but note that it only writes, i.e goes registers=>VPM=>Physical Memory (sometimes your kernel may need to read an input buffer as well). 
+
+To write our data, we start by configuring a VPM store in the `vw_setup` register. The program is going to store 4 16-wide horizontal vectors 1 at a time, and it would like to write the first starting at (y,x) coord (0,0), the second starting at (1,0), the third at (2,0), and the 4th and (3,0). To do so, it does: `mov vw_setup, vpm_setup(4, 1, h32(0))`, which corresponds to write 4 rows, increment by 1 after each write, and write horizontal 32-bit vectors start at y value 0. It then carries out the writes, by treating the `vpm` register like any other register (`ldi vpm, 0xdeadbeef` just writes `0xdeadbeef` to the `vpm`). After each write, the program executes a `mov -, vw_wait` to ensure the write completes, then writes out the following 3 values. Recall that each of these writes is a 16-wide vector. 
+
+After the VPM writes are complete, the program then prepares a DMA write using the `vw_setup` register once again, only this time using the `vdw_setup_0` macro. Here, the macro invocation `vdw_setup_0(4, 16, dma_h32(0,0))` corresponds to 'write 4 rows of the VPM, each of them 16 wide, horizontal 32-bit starting at VPM coord 0,0'. Because we're writing to physical memory, we also have to specify the `vw_addr` register, which in this case is just the uniform we provided when we launched the kernel. Finally, we do a `mov -, vw_wait` to kick of the DMA write.  And that's it! A complete hello-world program on the GPU, and we're only ... about 2,700 words into the README. 
 
 #### Running deadbeef
-Running `bash.sh` will reassemble the qasm and then run make. You can also just run make. You should see the memory update to the constants in deadbeef after the GPU executes. 
+Running `bash.sh` will reassemble the qasm and then run make. You can also just run make. After the GPU executes, you should see the memory update to the constants we write in `deadbeef.qasm`. 
 
 ## Part 1: Parallel Add
 
-The first program you'll implement is a SIMD vector add on a single QPU. `parallel-add.c` and `parallel-add.h` have a lot of the boiler-plate for executing QPU code we described above - you have the input A and B arrays and the output C arrays in the `struct GPU` and their addresses in the uniform array - you can decide any other uniforms you need. The kernel is in `parallel-add.qasm` - we've added a skeleton if you'd like, but this would also be great to Daniel-mode directly from the deadbeef example and vc4asm docs. 
+The first program you'll implement is a SIMD vector add of `A+B=C` on a single QPU. `parallel-add.c` and `parallel-add.h` have a lot of the boiler-plate for executing QPU code we described above - you have the input `A` and `B` arrays and the output `C` arrays in the `struct GPU` and their addresses in the uniform array - you can decide any other uniforms you need. The kernel is in `parallel-add.qasm` - we've added a skeleton if you'd like, but this would also be great to Daniel-mode directly from the deadbeef example and vc4asm docs. 
 
-Checkoff: Your kernel should calculate the same values as the CPU implementation, with a meaningful speedup (we had a 3-4x speedup on 1 QPU, better should be possible).  
+Checkoff: Your kernel should calculate the same values as the CPU implementation, with a meaningful speedup (we had a 3-4x speedup on 1 QPU and 8x speedup with 8 QPUs, better should be possible although a vector add is generally memory-bound).  
 
 ## Part 2: Mandelbrot
 <figure>
@@ -178,7 +196,7 @@ because each 16-wide vector is computed in lockstep fashion.
 For this one, all the code is in mandelbrot.qasm - fill in the TODOs to complete the kernel. 
 
 Checkoff:
-When you do bash run.sh for with 2-mandelbrot.c in your progs, you should get an output.pgm file on your pi SD card. When it opens on your computer, it should be the Mandelbrot fractal at the resolution you defined (probably don't go bigger than 1024 for the resolution),
+When you do bash run.sh with 2-mandelbrot.c in your progs, you should get an output.pgm file on your pi SD card. When you open it on your computer, you should see the Mandelbrot fractal at the resolution you defined (probably don't go bigger than 1024 for the resolution). With larger resolutions, you may want to comment out the CPU example because it takes so long (not a problem with the GPU :)).
 
 
 ## Useful Links
